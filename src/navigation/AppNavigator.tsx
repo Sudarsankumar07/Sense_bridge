@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import {
@@ -10,17 +10,26 @@ import {
     DeafModeScreen,
     SettingsScreen,
 } from '../screens';
+import { theme } from '../theme';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+const navTheme = {
+    ...DefaultTheme,
+    colors: {
+        ...DefaultTheme.colors,
+        background: theme.colors.background,
+    },
+};
+
 export const AppNavigator: React.FC = () => {
     return (
-        <NavigationContainer>
+        <NavigationContainer theme={navTheme}>
             <Stack.Navigator
                 initialRouteName="Splash"
                 screenOptions={{
                     headerShown: false,
-                    cardStyle: { backgroundColor: '#0a0a0a' },
+                    cardStyle: { backgroundColor: theme.colors.background },
                     animationEnabled: true,
                 }}
             >

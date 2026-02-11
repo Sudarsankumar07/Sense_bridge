@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { CurrencyDetection } from '../../types';
 import config from '../../constants/config';
 
@@ -21,22 +20,32 @@ export const detectCurrency = async (imageBase64: string): Promise<CurrencyDetec
             return getMockCurrencyDetection();
         }
 
-        const response = await axios.post(
-            `${API_URL}/${MODEL_ID}`,
-            { image: imageBase64 },
-            {
-                headers: {
-                    'Authorization': `Bearer ${API_KEY}`,
-                },
-                params: {
-                    api_key: API_KEY,
-                },
-                timeout: 10000,
-            }
-        );
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        if (response.data.predictions && response.data.predictions.length > 0) {
-            const prediction = response.data.predictions[0];
+        const url = new URL(`${API_URL}/${MODEL_ID}`);
+        url.searchParams.append('api_key', API_KEY);
+
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageBase64 }),
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.predictions && data.predictions.length > 0) {
+            const prediction = data.predictions[0];
             const denomination = parseDenomination(prediction.class);
 
             // Add to buffer for majority voting

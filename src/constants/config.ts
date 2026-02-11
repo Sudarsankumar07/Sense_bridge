@@ -10,17 +10,17 @@ export const config = {
         [AppMode.BLIND]: {
             title: 'Blind Mode',
             description: 'Obstacle and currency detection with voice alerts',
-            icon: '👨‍🦯',
+            icon: 'eye-off',
         },
         [AppMode.SIGN]: {
             title: 'Sign Mode',
             description: 'Sign language to text and voice conversion',
-            icon: '🤟',
+            icon: 'hand-wave',
         },
         [AppMode.DEAF]: {
             title: 'Deaf Mode',
             description: 'Speech to text with sign avatar',
-            icon: '🧏',
+            icon: 'ear-hearing-off',
         },
     },
 
