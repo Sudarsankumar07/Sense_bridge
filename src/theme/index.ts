@@ -30,16 +30,16 @@ export const theme = {
         error: '#ff5470',
     },
     gradients: {
-        hero: ['#0b0f14', '#0f1824', '#111e2d'],
-        card: ['#141c27', '#101826'],
-        pulse: ['rgba(61,214,255,0.2)', 'rgba(61,214,255,0)'],
-        success: ['#0e2a22', '#0b1e18'],
-        warning: ['#2b210d', '#171105'],
+        hero: ['#0b0f14', '#0f1824', '#111e2d'] as const,
+        card: ['#141c27', '#101826'] as const,
+        pulse: ['rgba(61,214,255,0.2)', 'rgba(61,214,255,0)'] as const,
+        success: ['#0e2a22', '#0b1e18'] as const,
+        warning: ['#2b210d', '#171105'] as const,
 
         // Glassmorphism gradients
-        glass: ['rgba(18, 25, 35, 0.95)', 'rgba(18, 25, 35, 0.85)'],
-        glassCard: ['rgba(20, 28, 39, 0.9)', 'rgba(16, 24, 38, 0.8)'],
-        shimmer: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.1)', 'rgba(255,255,255,0)'],
+        glass: ['rgba(18, 25, 35, 0.95)', 'rgba(18, 25, 35, 0.85)'] as const,
+        glassCard: ['rgba(20, 28, 39, 0.9)', 'rgba(16, 24, 38, 0.8)'] as const,
+        shimmer: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.1)', 'rgba(255,255,255,0)'] as const,
     },
     spacing: {
         xs: 6,

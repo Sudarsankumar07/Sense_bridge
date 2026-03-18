@@ -61,5 +61,35 @@ export type RootStackParamList = {
     BlindMode: undefined;
     SignMode: undefined;
     DeafMode: undefined;
+    Navigation: undefined;
     Settings: undefined;
 };
+
+export interface NavigationStep {
+    instruction: string;
+    distance: number;
+    duration: number;
+    type: number;
+    name: string;
+}
+
+export interface NavigationRoute {
+    steps: NavigationStep[];
+    totalDistance: number;
+    totalDuration: number;
+    geometry: [number, number][];
+}
+
+export interface GeocodingResult {
+    name: string;
+    label: string;
+    coordinates: [number, number];
+}
+
+export interface CloudError {
+    source: 'object_detection' | 'currency_detection';
+    provider: string;
+    httpStatus?: number;
+    message: string;
+    timestamp: number;
+}

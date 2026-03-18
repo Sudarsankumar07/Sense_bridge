@@ -1,85 +1,23 @@
-import { ObjectDetection } from '../../types';
-import config from '../../constants/config';
+import { ObjectDetection, CloudError } from '../../types';
+import { CLOUD_PROVIDER } from '@env';
+import { detectObjectsRoboflow } from './objectDetection.roboflow';
+import { detectObjectsGoogleVision } from './objectDetection.googleVision';
 
 /**
- * Object Detection Service
- * For Expo Go: mock detections.
- * For native build: replace with on-device inference.
+ * Object Detection Service – Provider Selector
+ *
+ * Routes to Roboflow or Google Vision based on the CLOUD_PROVIDER env variable.
+ * Throws CloudError on failures instead of returning silent empty arrays.
  */
 
-const API_URL = config.API.OBJECT_DETECTION;
-const API_KEY = process.env.HUGGING_FACE_API_KEY || 'demo';
+const provider = (CLOUD_PROVIDER || 'roboflow').toLowerCase();
+
+// Log selected provider at module load (startup)
+console.log(`[SenseBridge] Object Detection provider: ${provider}`);
 
 export const detectObjects = async (imageBase64: string): Promise<ObjectDetection[]> => {
-    try {
-        if (API_KEY === 'demo') {
-            return getMockObjectDetection();
-        }
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ inputs: imageBase64 }),
-            signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        const detections: ObjectDetection[] = data.map((detection: any) => ({
-            class: detection.label,
-            confidence: detection.score,
-            boundingBox: detection.box,
-            distance: estimateDistance(detection.box),
-        }));
-
-        return detections.filter(d => d.confidence >= config.DETECTION.CONFIDENCE_THRESHOLD);
-    } catch (error) {
-        console.error('Object detection error:', error);
-        return getMockObjectDetection();
+    if (provider === 'google') {
+        return detectObjectsGoogleVision(imageBase64);
     }
-};
-
-const estimateDistance = (box: any): number => {
-    const boxArea = box.width * box.height;
-    const normalizedArea = boxArea / 10000;
-    const estimatedDistance = Math.max(0.5, 5 - normalizedArea * 4);
-    return parseFloat(estimatedDistance.toFixed(1));
-};
-
-const getMockObjectDetection = (): ObjectDetection[] => {
-    const mockObjects = [
-        { class: 'person', distance: 2.2 },
-        { class: 'chair', distance: 1.6 },
-        { class: 'door', distance: 3.4 },
-        { class: 'stairs', distance: 1.2 },
-        { class: 'table', distance: 2.8 },
-    ];
-
-    const randomObject = mockObjects[Math.floor(Math.random() * mockObjects.length)];
-
-    return [
-        {
-            class: randomObject.class,
-            confidence: 0.85 + Math.random() * 0.1,
-            boundingBox: {
-                x: 100,
-                y: 100,
-                width: 200,
-                height: 200,
-            },
-            distance: randomObject.distance,
-        },
-    ];
+    return detectObjectsRoboflow(imageBase64);
 };

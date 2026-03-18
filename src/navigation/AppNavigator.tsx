@@ -9,6 +9,7 @@ import {
     SignModeScreen,
     DeafModeScreen,
     SettingsScreen,
+    NavigationScreen,
 } from '../screens';
 import { theme } from '../theme';
 
@@ -38,6 +39,7 @@ export const AppNavigator: React.FC = () => {
                 <Stack.Screen name="BlindMode" component={BlindModeScreen} />
                 <Stack.Screen name="SignMode" component={SignModeScreen} />
                 <Stack.Screen name="DeafMode" component={DeafModeScreen} />
+                <Stack.Screen name="Navigation" component={NavigationScreen} />
                 <Stack.Screen name="Settings" component={SettingsScreen} />
             </Stack.Navigator>
         </NavigationContainer>

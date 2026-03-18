@@ -7,8 +7,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
-import config from '../constants/config';
-import { speak } from '../services/voiceEngine';
 import { requestPermissions } from '../utils/permissions';
 
 type SplashScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Splash'>;
@@ -65,7 +63,8 @@ export const SplashScreen: React.FC = () => {
             ).start();
 
             await requestPermissions();
-            speak(config.MESSAGES.WELCOME, true);
+
+            // Welcome speech moved to ModeSelectionScreen for voice prompt flow
 
             // Fade out and navigate
             setTimeout(() => {

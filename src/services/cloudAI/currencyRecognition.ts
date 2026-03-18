@@ -1,82 +1,49 @@
-import { CurrencyDetection } from '../../types';
+import { CurrencyDetection, CloudError } from '../../types';
+import { CLOUD_PROVIDER } from '@env';
 import config from '../../constants/config';
+import { detectCurrencyRoboflow } from './currencyRecognition.roboflow';
+import { detectCurrencyGoogleVision } from './currencyRecognition.googleVision';
 
 /**
- * Currency Recognition Service
- * Detects Indian currency notes and coins
+ * Currency Recognition Service – Provider Selector
+ *
+ * Routes to Roboflow or Google Vision based on CLOUD_PROVIDER env variable.
+ * Maintains majority-voting buffer regardless of provider.
+ * Throws CloudError on failures instead of returning mock data.
  */
 
-const API_URL = config.API.CURRENCY_DETECTION;
-const API_KEY = process.env.ROBOFLOW_API_KEY || 'demo';
-const MODEL_ID = process.env.ROBOFLOW_CURRENCY_MODEL || 'indian-currency';
+const provider = (CLOUD_PROVIDER || 'roboflow').toLowerCase();
+
+console.log(`[SenseBridge] Currency Detection provider: ${provider}`);
 
 // Majority voting buffer
 let detectionBuffer: number[] = [];
 
 export const detectCurrency = async (imageBase64: string): Promise<CurrencyDetection | null> => {
-    try {
-        // For demo purposes, if no API key, return mock data
-        if (API_KEY === 'demo') {
-            return getMockCurrencyDetection();
-        }
+    let raw: CurrencyDetection | null;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        const url = new URL(`${API_URL}/${MODEL_ID}`);
-        url.searchParams.append('api_key', API_KEY);
-
-        const response = await fetch(url.toString(), {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ image: imageBase64 }),
-            signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.predictions && data.predictions.length > 0) {
-            const prediction = data.predictions[0];
-            const denomination = parseDenomination(prediction.class);
-
-            // Add to buffer for majority voting
-            detectionBuffer.push(denomination);
-            if (detectionBuffer.length > config.DETECTION.FRAMES_FOR_CURRENCY) {
-                detectionBuffer.shift();
-            }
-
-            // Get majority vote
-            const finalDenomination = getMajorityVote(detectionBuffer);
-
-            return {
-                denomination: finalDenomination,
-                currency: 'INR',
-                confidence: prediction.confidence,
-            };
-        }
-
-        return null;
-    } catch (error) {
-        console.error('Currency detection error:', error);
-        return getMockCurrencyDetection();
+    if (provider === 'google') {
+        raw = await detectCurrencyGoogleVision(imageBase64);
+    } else {
+        raw = await detectCurrencyRoboflow(imageBase64);
     }
-};
 
-/**
- * Parse denomination from class name
- */
-const parseDenomination = (className: string): number => {
-    const match = className.match(/\d+/);
-    return match ? parseInt(match[0]) : 0;
+    if (!raw) return null;
+
+    // Add to buffer for majority voting
+    detectionBuffer.push(raw.denomination);
+    if (detectionBuffer.length > config.DETECTION.FRAMES_FOR_CURRENCY) {
+        detectionBuffer.shift();
+    }
+
+    // Get majority vote
+    const finalDenomination = getMajorityVote(detectionBuffer);
+
+    return {
+        denomination: finalDenomination,
+        currency: raw.currency,
+        confidence: raw.confidence,
+    };
 };
 
 /**
@@ -107,18 +74,4 @@ const getMajorityVote = (buffer: number[]): number => {
  */
 export const resetCurrencyBuffer = () => {
     detectionBuffer = [];
-};
-
-/**
- * Mock currency detection for testing without API
- */
-const getMockCurrencyDetection = (): CurrencyDetection => {
-    const denominations = [10, 20, 50, 100, 200, 500, 2000];
-    const randomDenomination = denominations[Math.floor(Math.random() * denominations.length)];
-
-    return {
-        denomination: randomDenomination,
-        currency: 'INR',
-        confidence: 0.88 + Math.random() * 0.1,
-    };
 };

@@ -8,14 +8,12 @@ const LAST_MODE_KEY = 'sensebridge.last_mode';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
-const getDb = () => {
+const getDb = (): SQLite.SQLiteDatabase => {
     if (!db) {
-        db = SQLite.openDatabase('sensebridge.db');
-        db.transaction(tx => {
-            tx.executeSql(
-                'CREATE TABLE IF NOT EXISTS history (id TEXT PRIMARY KEY NOT NULL, mode TEXT, timestamp INTEGER, output TEXT);'
-            );
-        });
+        db = SQLite.openDatabaseSync('sensebridge.db');
+        db.execSync(
+            'CREATE TABLE IF NOT EXISTS history (id TEXT PRIMARY KEY NOT NULL, mode TEXT, timestamp INTEGER, output TEXT);'
+        );
     }
 
     return db;
@@ -49,24 +47,16 @@ export const setLastMode = async (mode: AppMode) => {
 
 export const addHistoryEntry = async (entry: HistoryEntry) => {
     const database = getDb();
-    database.transaction(tx => {
-        tx.executeSql('INSERT INTO history (id, mode, timestamp, output) VALUES (?, ?, ?, ?);', [
-            entry.id,
-            entry.mode,
-            entry.timestamp,
-            entry.output,
-        ]);
-    });
+    database.runSync(
+        'INSERT INTO history (id, mode, timestamp, output) VALUES (?, ?, ?, ?);',
+        [entry.id, entry.mode, entry.timestamp, entry.output]
+    );
 };
 
 export const getHistory = async (): Promise<HistoryEntry[]> => {
     const database = getDb();
-    return new Promise(resolve => {
-        database.transaction(tx => {
-            tx.executeSql('SELECT * FROM history ORDER BY timestamp DESC LIMIT 50;', [], (_, result) => {
-                resolve(result.rows._array as HistoryEntry[]);
-                return false;
-            });
-        });
-    });
+    const result = database.getAllSync(
+        'SELECT * FROM history ORDER BY timestamp DESC LIMIT 50;'
+    );
+    return result as HistoryEntry[];
 };

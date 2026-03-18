@@ -3,15 +3,30 @@
 .expo-shared
 dist/
 web-build/
+.expo/web/
+.expo/devices.json
 
 # Node
 node_modules/
 npm-debug.log
 yarn-error.log
+pnpm-debug.log
 
 # Environment
 .env
 .env.local
+.env.*.local
+!.env.example
+.env.example
+
+# Build outputs
+android/
+ios/
+*.apk
+*.aab
+
+# Testing
+coverage/
 
 # IDE
 .vscode/

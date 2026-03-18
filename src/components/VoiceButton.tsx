@@ -14,7 +14,6 @@ type VoiceButtonProps = {
 export const VoiceButton: React.FC<VoiceButtonProps> = ({ label, subLabel, onPress, listening = false }) => {
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const scaleAnim = useRef(new Animated.Value(1)).current;
-    const glowAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (listening) {
@@ -33,22 +32,11 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ label, subLabel, onPre
                     }),
                 ])
             ).start();
-
-            Animated.timing(glowAnim, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: false,
-            }).start();
         } else {
             pulseAnim.stopAnimation();
             pulseAnim.setValue(1);
-            Animated.timing(glowAnim, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: false,
-            }).start();
         }
-    }, [listening, pulseAnim, glowAnim]);
+    }, [listening, pulseAnim]);
 
     const handlePressIn = () => {
         Animated.spring(scaleAnim, {
@@ -66,10 +54,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ label, subLabel, onPre
         }).start();
     };
 
-    const glowColor = glowAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['rgba(61, 214, 255, 0)', 'rgba(61, 214, 255, 0.4)'],
-    });
+
 
     return (
         <TouchableOpacity
@@ -83,7 +68,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ label, subLabel, onPre
                     styles.wrapper,
                     {
                         transform: [{ scale: scaleAnim }],
-                        shadowColor: glowColor,
                     }
                 ]}
             >

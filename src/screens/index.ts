@@ -4,3 +4,4 @@ export { BlindModeScreen } from './BlindModeScreen';
 export { SignModeScreen } from './SignModeScreen';
 export { DeafModeScreen } from './DeafModeScreen';
 export { SettingsScreen } from './SettingsScreen';
+export { NavigationScreen } from './NavigationScreen';

@@ -1,18 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera } from 'expo-camera';
+import { CameraView } from 'expo-camera';
 import { theme } from '../theme';
 import { CameraViewComponent } from '../components';
 import { recognizeSign } from '../services/cloudAI/signLanguage';
 import { speak } from '../services/voiceEngine';
 import { hapticSelection } from '../services/haptics';
+import { useVoiceCommands } from '../hooks/useVoiceCommands';
 
 export const SignModeScreen: React.FC = () => {
-    const cameraRef = useRef<Camera>(null);
+    const navigation = useNavigation();
+    const cameraRef = useRef<CameraView>(null);
     const [currentSign, setCurrentSign] = useState('Waiting for sign...');
     const [confidence, setConfidence] = useState(0);
+
+    useVoiceCommands({
+        intro: 'Sign mode activated. Say go back to return.',
+        commands: {
+            back: () => { hapticSelection(); navigation.goBack(); },
+        },
+    });
 
     useEffect(() => {
         const interval = setInterval(async () => {
@@ -30,6 +41,15 @@ export const SignModeScreen: React.FC = () => {
         <SafeAreaView style={styles.container}>
             <StatusBar style="light" />
             <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => {
+                        hapticSelection();
+                        navigation.goBack();
+                    }}
+                >
+                    <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
                 <Text style={styles.title}>Sign Mode</Text>
                 <Text style={styles.subtitle}>Hands to words, instantly.</Text>
             </LinearGradient>
@@ -53,6 +73,19 @@ const styles = StyleSheet.create({
     },
     hero: {
         padding: theme.spacing.lg,
+        position: 'relative',
+    },
+    backButton: {
+        position: 'absolute',
+        top: theme.spacing.md,
+        left: theme.spacing.md,
+        width: 40,
+        height: 40,
+        borderRadius: theme.radius.md,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
     },
     title: {
         ...theme.typography.h1,

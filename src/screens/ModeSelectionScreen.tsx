@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,7 @@ import { theme } from '../theme';
 import { RootStackParamList, AppMode } from '../types';
 import config from '../constants/config';
 import { ModeCard, VoiceButton } from '../components';
-import { listenForCommand, speak } from '../services/voiceEngine';
+import { listenForCommand, speakAndWait, speak } from '../services/voiceEngine';
 import { hapticSelection } from '../services/haptics';
 import { setLastMode } from '../services/storage';
 
@@ -19,33 +19,90 @@ const modeOrder: AppMode[] = [AppMode.BLIND, AppMode.SIGN, AppMode.DEAF];
 export const ModeSelectionScreen: React.FC = () => {
     const navigation = useNavigation<ModeSelectionNavigationProp>();
     const [listening, setListening] = useState(false);
+    const [statusText, setStatusText] = useState('Initializing voice...');
+    const activeRef = useRef(true);
 
-    const navigateToMode = async (mode: AppMode) => {
+    const navigateToMode = useCallback(async (mode: AppMode) => {
+        activeRef.current = false; // stop the voice loop
         await setLastMode(mode);
         hapticSelection();
         speak(config.MESSAGES.MODE_SELECTED(config.MODES[mode].title));
         navigation.navigate(mode === AppMode.BLIND ? 'BlindMode' : mode === AppMode.SIGN ? 'SignMode' : 'DeafMode');
-    };
+    }, [navigation]);
+
+    const matchVoiceCommand = useCallback((text: string): AppMode | null => {
+        const normalized = text.toLowerCase();
+        if (config.VOICE_COMMANDS.BLIND_MODE.some(cmd => normalized.includes(cmd))) {
+            return AppMode.BLIND;
+        }
+        if (config.VOICE_COMMANDS.SIGN_MODE.some(cmd => normalized.includes(cmd))) {
+            return AppMode.SIGN;
+        }
+        if (config.VOICE_COMMANDS.DEAF_MODE.some(cmd => normalized.includes(cmd))) {
+            return AppMode.DEAF;
+        }
+        return null;
+    }, []);
+
+    const startVoiceLoop = useCallback(async () => {
+        if (!activeRef.current) return;
+
+        // Speak the welcome prompt and wait for it to finish
+        setStatusText('Speaking...');
+        await speakAndWait(config.MESSAGES.WELCOME);
+
+        // Voice prompt loop: listen → match → navigate or retry
+        while (activeRef.current) {
+            setListening(true);
+            setStatusText('Listening... speak now');
+
+            const result = await listenForCommand(4000);
+
+            setListening(false);
+
+            if (!activeRef.current) break;
+
+            if (result.text) {
+                setStatusText(`Heard: "${result.text}"`);
+                const mode = matchVoiceCommand(result.text);
+
+                if (mode) {
+                    await navigateToMode(mode);
+                    return; // done
+                } else {
+                    // Not recognized — retry
+                    setStatusText('Not recognized, retrying...');
+                    await speakAndWait("I didn't catch that. Please say Blind Mode, Sign Mode, or Deaf Mode.");
+                }
+            } else {
+                // No speech detected — retry
+                setStatusText('No speech detected, retrying...');
+                await speakAndWait("I didn't hear anything. Please try again.");
+            }
+        }
+    }, [matchVoiceCommand, navigateToMode]);
 
     useEffect(() => {
-        const runVoicePrompt = async () => {
-            setListening(true);
-            const result = await listenForCommand();
-            if (result.text) {
-                const normalized = result.text.toLowerCase();
-                if (config.VOICE_COMMANDS.BLIND_MODE.some(cmd => normalized.includes(cmd))) {
-                    await navigateToMode(AppMode.BLIND);
-                } else if (config.VOICE_COMMANDS.SIGN_MODE.some(cmd => normalized.includes(cmd))) {
-                    await navigateToMode(AppMode.SIGN);
-                } else if (config.VOICE_COMMANDS.DEAF_MODE.some(cmd => normalized.includes(cmd))) {
-                    await navigateToMode(AppMode.DEAF);
-                }
-            }
-            setListening(false);
-        };
+        activeRef.current = true;
 
-        runVoicePrompt();
-    }, []);
+        // Small delay so the screen renders before speaking
+        const timer = setTimeout(() => {
+            startVoiceLoop();
+        }, 500);
+
+        return () => {
+            activeRef.current = false;
+            clearTimeout(timer);
+        };
+    }, [startVoiceLoop]);
+
+    // Also allow manual trigger via VoiceButton tap
+    const handleVoiceButtonPress = () => {
+        if (!listening) {
+            activeRef.current = true;
+            startVoiceLoop();
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -60,9 +117,10 @@ export const ModeSelectionScreen: React.FC = () => {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.voiceCard}>
                     <VoiceButton
-                        label={listening ? 'Listening for a mode...' : 'Tap to start voice mode selection'}
+                        label={listening ? 'Listening... speak now' : statusText}
                         subLabel="Say Blind Mode, Sign Mode, or Deaf Mode"
-                        onPress={() => speak(config.MESSAGES.WELCOME, true)}
+                        onPress={handleVoiceButtonPress}
+                        listening={listening}
                     />
                 </View>
 
@@ -122,8 +180,9 @@ const styles = StyleSheet.create({
         marginTop: theme.spacing.xs,
     },
     scrollContent: {
+        flexGrow: 1,
         padding: theme.spacing.xl,
-        paddingBottom: theme.spacing.xxl + 20,
+        paddingBottom: theme.spacing.xxl * 2,
     },
     voiceCard: {
         marginBottom: theme.spacing.xl,

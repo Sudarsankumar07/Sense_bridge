@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SenseBridge",
-    "slug": "sensebridge",
+    "slug": "sensebridge-susan07",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "SenseBridge needs camera access for obstacle detection and sign language recognition",
-        "NSMicrophoneUsageDescription": "SenseBridge needs microphone access for voice commands and speech recognition"
+        "NSMicrophoneUsageDescription": "SenseBridge needs microphone access for voice commands and speech recognition",
+        "NSLocationWhenInUseUsageDescription": "SenseBridge needs location access for walking navigation in Blind Mode"
       }
     },
     "android": {
@@ -26,8 +27,11 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
-        "android.permission.VIBRATE"
-      ]
+        "android.permission.VIBRATE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "package": "com.susan07.sensebridgesusan07"
     },
     "plugins": [
       [
@@ -36,7 +40,18 @@
           "cameraPermission": "Allow SenseBridge to access your camera for obstacle detection and sign language recognition"
         }
       ],
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SenseBridge needs location access for walking navigation in Blind Mode"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1e1550e0-afd6-43bf-8d09-29a0c1ed09f6"
+      }
+    }
   }
 }

@@ -1,7 +1,7 @@
-import { Camera, CameraCapturedPicture } from 'expo-camera';
+import { CameraView, CameraCapturedPicture } from 'expo-camera';
 import config from '../constants/config';
 
-export const captureFrame = async (cameraRef: Camera | null): Promise<CameraCapturedPicture | null> => {
+export const captureFrame = async (cameraRef: CameraView | null): Promise<CameraCapturedPicture | null> => {
     if (!cameraRef) return null;
 
     try {
@@ -9,9 +9,10 @@ export const captureFrame = async (cameraRef: Camera | null): Promise<CameraCapt
             base64: true,
             quality: config.CAMERA.QUALITY,
             skipProcessing: true,
+            shutterSound: false,
         });
 
-        return photo;
+        return photo ?? null;
     } catch (error) {
         console.error('Camera capture error:', error);
         return null;

@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 type CameraViewProps = {
-    cameraRef: React.RefObject<CameraView>;
+    cameraRef: React.RefObject<CameraView | null>;
     label?: string;
 };
 
@@ -30,7 +30,8 @@ export const CameraViewComponent: React.FC<CameraViewProps> = ({ cameraRef, labe
 
     return (
         <View style={styles.wrapper}>
-            <CameraView ref={cameraRef} style={styles.camera} facing="back" />            <View style={styles.overlay}>
+            <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="16:9" />
+            <View style={styles.overlay}>
                 <Text style={styles.label}>{label ?? 'Live Camera'}</Text>
             </View>
         </View>
