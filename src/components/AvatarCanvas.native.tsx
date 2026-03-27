@@ -5,7 +5,7 @@ import { Renderer } from 'expo-three';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import * as THREE from 'three';
-import { DRACOLoader, GLTFLoader } from 'three-stdlib';
+import { GLTFLoader } from 'three-stdlib';
 
 interface AvatarCanvasProps {
     onReady: (mixer: THREE.AnimationMixer) => void;
@@ -26,8 +26,8 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
         const camera = new THREE.PerspectiveCamera(
             60,
             gl.drawingBufferWidth / gl.drawingBufferHeight,
-            0.1,
-            100
+            0.01,
+            1000
         );
         camera.position.set(0, 1.45, 1.8);
         camera.lookAt(0, 1.2, 0);
@@ -50,6 +50,7 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
         const frameModel = (root: THREE.Object3D) => {
             const box = new THREE.Box3().setFromObject(root);
             if (box.isEmpty()) {
+                console.warn('[AvatarCanvas] Bounding box is empty — model may have no geometry');
                 return;
             }
 
@@ -58,136 +59,106 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             const center = new THREE.Vector3();
             box.getCenter(center);
 
-            // Center model horizontally and place feet on floor plane.
-            root.position.x -= center.x;
-            root.position.z -= center.z;
-            root.position.y -= box.min.y;
+            console.log('[AvatarCanvas] Model raw size:', size.x.toFixed(2), size.y.toFixed(2), size.z.toFixed(2));
+            console.log('[AvatarCanvas] Model center:', center.x.toFixed(2), center.y.toFixed(2), center.z.toFixed(2));
 
-            const normalizedBox = new THREE.Box3().setFromObject(root);
-            const normalizedSize = new THREE.Vector3();
-            normalizedBox.getSize(normalizedSize);
+            // ── AUTO-SCALE ──────────────────────────────────────────────────
+            // FBX→GLB exports from Mixamo are often in centimeters (170 units
+            // tall) instead of meters (1.7 units). Scale so the model is
+            // always ~1.8 units (meters) tall regardless of source unit.
+            const TARGET_HEIGHT = 1.8;
+            const scale = size.y > 0 ? TARGET_HEIGHT / size.y : 1;
+            root.scale.set(scale, scale, scale);
+            console.log('[AvatarCanvas] Applied scale:', scale.toFixed(4));
 
-            const maxDim = Math.max(normalizedSize.x, normalizedSize.y, normalizedSize.z);
-            const fov = THREE.MathUtils.degToRad(camera.fov);
-            const fitDistance = maxDim > 0 ? (maxDim * 0.8) / Math.tan(fov / 2) : 2.2;
+            // Re-compute bounding box after scaling
+            const scaledBox = new THREE.Box3().setFromObject(root);
+            const scaledSize = new THREE.Vector3();
+            scaledBox.getSize(scaledSize);
+            const scaledCenter = new THREE.Vector3();
+            scaledBox.getCenter(scaledCenter);
 
-            camera.position.set(0, Math.max(0.9, normalizedSize.y * 0.55), fitDistance * 1.05);
-            camera.lookAt(0, Math.max(0.8, normalizedSize.y * 0.45), 0);
+            // Center horizontally, place feet at y=0
+            root.position.x -= scaledCenter.x;
+            root.position.z -= scaledCenter.z;
+            root.position.y -= scaledBox.min.y;
+
+            // ── CAMERA ──────────────────────────────────────────────────────
+            // Fixed camera — looks at chest height, 2.5 units back.
+            // Use a fixed distance instead of fitDistance to guarantee
+            // the model is always within the camera frustum.
+            const eyeHeight  = scaledSize.y * 0.55;  // ~chest level
+            const camDist    = 2.5;
+            camera.position.set(0, eyeHeight, camDist);
+            camera.lookAt(0, eyeHeight * 0.75, 0);
+            camera.near = 0.01;
+            camera.far  = 1000;
+            camera.updateProjectionMatrix();
+            console.log('[AvatarCanvas] Camera set — eye:', eyeHeight.toFixed(2), 'dist:', camDist);
         };
 
         try {
             console.log('[AvatarCanvas] Loading GLB asset...');
             const asset = Asset.fromModule(require('../../assets/models/avatar.glb'));
-            console.log('[AvatarCanvas] Asset loaded:', typeof asset, asset?.uri ? 'URI present' : 'NO URI');
-            
             await asset.downloadAsync();
-            console.log('[AvatarCanvas] Asset downloaded, localUri:', asset.localUri?.substring(0, 80));
 
-            // Verify asset URI is a string (not object)
-            const assetUri = asset.localUri || asset.uri;
-            if (typeof assetUri !== 'string') {
-                throw new Error(`Asset URI is not a string: ${typeof assetUri}. Value: ${String(assetUri).substring(0, 100)}`);
+            // Use asset.uri — Metro serves assets over HTTP during development.
+            // This is always a valid HTTP URL that fetch() handles natively.
+            // Do NOT use asset.localUri — file:// paths break on Android Expo Go.
+            const assetUri = asset.uri;
+            if (!assetUri) {
+                throw new Error('Asset URI is empty — asset failed to resolve');
             }
+            console.log('[AvatarCanvas] Fetching GLB from:', assetUri.substring(0, 80));
 
-            // Polyfill: Handle Blob creation from ArrayBuffer for Expo environment
-            // This prevents "Creating blobs from ArrayBuffer is not supported" errors
-            const OriginalBlob = globalThis.Blob;
-            if (OriginalBlob) {
-                (globalThis as any).Blob = class Blob extends OriginalBlob {
-                    constructor(parts?: any, options?: any) {
-                        try {
-                            super(parts, options);
-                        } catch (e: any) {
-                            // If Blob creation from ArrayBuffer fails, create from string
-                            if (e?.message?.includes('Creating blobs from')) {
-                                const arrayBuffer = parts?.[0];
-                                if (arrayBuffer instanceof ArrayBuffer) {
-                                    const view = new Uint8Array(arrayBuffer);
-                                    super([view], options);
-                                } else {
-                                    super(parts, options);
-                                }
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-                };
+            // ─────────────────────────────────────────────────────────────────
+            // Use fetch() + arrayBuffer() — works on all platforms in Expo Go.
+            // No FileSystem, no native module dependency, no Draco CDN needed.
+            // ─────────────────────────────────────────────────────────────────
+            const response = await fetch(assetUri);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch GLB: HTTP ${response.status}`);
             }
+            const arrayBuffer = await response.arrayBuffer();
+            console.log('[AvatarCanvas] GLB fetched, size:', arrayBuffer.byteLength);
 
             const loader = new GLTFLoader();
-            const dracoLoader = new DRACOLoader();
-            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-            loader.setDRACOLoader(dracoLoader);
-
-            // Suppress texture loading errors in console (model still loads without textures)
-            const originalWarn = console.warn;
-            const originalError = console.error;
-            const textureErrorFilter = (msg: any) => {
-                const msgStr = String(msg);
-                // Suppress only Three.js GLTFLoader texture warnings
-                if (msgStr.includes('GLTFLoader') && msgStr.includes('texture')) {
-                    return true;
-                }
-                return false;
-            };
-
-            console.warn = (...args: any[]) => {
-                if (!textureErrorFilter(args[0])) originalWarn(...args);
-            };
-            console.error = (...args: any[]) => {
-                if (!textureErrorFilter(args[0])) originalError(...args);
-            };
-
-            console.log('[AvatarCanvas] Loading GLTF from:', assetUri.substring(0, 80));
-            const gltf = await loader.loadAsync(assetUri);
-            
-            // Restore console methods
-            console.warn = originalWarn;
-            console.error = originalError;
+            console.log('[AvatarCanvas] Parsing GLB ArrayBuffer...');
+            const gltf = await new Promise<any>((resolve, reject) => {
+                loader.parse(arrayBuffer, '', resolve, reject);
+            });
+            console.log('[AvatarCanvas] GLB parsed successfully');
 
             gltf.scene.position.set(0, 0, 0);
             scene.add(gltf.scene);
             frameModel(gltf.scene);
 
+            // Collect bone names and write report
             const detectedBones: string[] = [];
             gltf.scene.traverse((obj: THREE.Object3D) => {
                 if (obj instanceof THREE.Bone) {
                     detectedBones.push(obj.name);
-                    console.log('[AvatarCanvas] Bone:', obj.name);
                 }
             });
-
             const uniqueBones = Array.from(new Set(detectedBones)).sort((a, b) => a.localeCompare(b));
-            const reportPath = `${FileSystem.documentDirectory ?? ''}sensebridge-avatar-bones.json`;
-            
-            try {
-                const reportPayload = {
-                    generatedAt: new Date().toISOString(),
-                    totalBones: uniqueBones.length,
-                    bones: uniqueBones,
-                };
+            console.log('[AvatarCanvas] Bones detected:', uniqueBones.length, uniqueBones.slice(0, 5));
 
+            const reportPath = `${FileSystem.documentDirectory ?? ''}sensebridge-avatar-bones.json`;
+            try {
                 if (FileSystem.documentDirectory) {
-                    const reportJson = JSON.stringify(reportPayload, null, 2);
-                    console.log('[AvatarCanvas] Writing bone report:', reportJson.substring(0, 100));
-                    
                     await FileSystem.writeAsStringAsync(
                         reportPath,
-                        reportJson,
+                        JSON.stringify({ generatedAt: new Date().toISOString(), totalBones: uniqueBones.length, bones: uniqueBones }, null, 2),
                         { encoding: FileSystem.EncodingType.UTF8 }
                     );
-                    console.log('[AvatarCanvas] Bone report saved to:', reportPath);
                     onBonesDetected?.(uniqueBones, reportPath);
                 }
-            } catch (reportError) {
-                const reportMsg = reportError instanceof Error ? reportError.message : 'Unknown error';
-                console.error('[AvatarCanvas] Error saving bone report:', reportMsg);
+            } catch {
                 onBonesDetected?.(uniqueBones, '');
             }
 
             if (uniqueBones.length === 0) {
-                console.warn('[AvatarCanvas] Model loaded but has no bones. Sign animations require a rigged humanoid GLB.');
+                console.warn('[AvatarCanvas] No bones found. Model may be unrigged — animations will not play.');
             }
 
             const mixer = new THREE.AnimationMixer(gltf.scene);

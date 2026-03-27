@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { createSignEngine } from '../hooks/useSignEngine';
 export const DeafModeScreen: React.FC = () => {
     const navigation = useNavigation();
     const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+    const signEngineRef = useRef<ReturnType<typeof createSignEngine> | null>(null);
     const [inputText, setInputText] = useState('');
     const [avatarStatus, setAvatarStatus] = useState<'loading' | 'ready' | 'error'>('loading');
     const [statusMessage, setStatusMessage] = useState('Loading avatar model...');
@@ -26,16 +27,10 @@ export const DeafModeScreen: React.FC = () => {
         navigation.goBack();
     }, [navigation]);
 
-    const signEngine = useMemo(() => {
-        if (!mixerRef.current) {
-            return null;
-        }
-
-        return createSignEngine(mixerRef.current);
-    }, [avatarStatus]);
-
+    // Create sign engine immediately when the mixer is available — do NOT use useMemo
     const handleAvatarReady = useCallback((mixer: THREE.AnimationMixer) => {
         mixerRef.current = mixer;
+        signEngineRef.current = createSignEngine(mixer);
         setAvatarStatus('ready');
         setStatusMessage('Avatar ready for signing.');
     }, []);
@@ -51,19 +46,22 @@ export const DeafModeScreen: React.FC = () => {
     }, []);
 
     const handleSign = useCallback(async () => {
-        if (!signEngine || !inputText.trim()) {
+        const engine = signEngineRef.current;
+        if (!engine || !inputText.trim()) {
             return;
         }
 
         setIsSigning(true);
         setLastSignedText(inputText.trim());
         try {
-            signEngine.stop();
-            await signEngine.playText(inputText);
+            engine.stop();
+            await engine.playText(inputText);
         } finally {
             setTimeout(() => setIsSigning(false), 300);
         }
-    }, [signEngine, inputText]);
+    }, [inputText]);
+
+    const isReadyToSign = avatarStatus === 'ready' && !!signEngineRef.current && !!inputText.trim();
 
     return (
         <SafeAreaView style={styles.container}>
@@ -101,9 +99,11 @@ export const DeafModeScreen: React.FC = () => {
                     </Text>
                     <Text style={styles.statusDetail}>{statusMessage}</Text>
                     <Text style={styles.statusDetail}>Bones detected: {boneCount}</Text>
-                    <Text style={styles.statusDetail} numberOfLines={1}>
-                        Bone report: {boneReportPath || 'Pending export...'}
-                    </Text>
+                    {boneReportPath ? (
+                        <Text style={styles.statusDetail} numberOfLines={1}>
+                            Bone report: {boneReportPath}
+                        </Text>
+                    ) : null}
                 </View>
 
                 <View style={styles.captionCard}>
@@ -112,7 +112,7 @@ export const DeafModeScreen: React.FC = () => {
                         style={styles.input}
                         value={inputText}
                         onChangeText={setInputText}
-                        placeholder="Type text for avatar signing..."
+                        placeholder="Type text for avatar signing... (try: hello, yes, no)"
                         placeholderTextColor={theme.colors.textMuted}
                         multiline
                     />
@@ -121,10 +121,10 @@ export const DeafModeScreen: React.FC = () => {
                 <TouchableOpacity
                     style={[
                         styles.toggleButton,
-                        (!signEngine || !inputText.trim() || avatarStatus !== 'ready') && styles.disabledButton,
+                        !isReadyToSign && styles.disabledButton,
                     ]}
                     onPress={handleSign}
-                    disabled={!signEngine || !inputText.trim() || avatarStatus !== 'ready'}
+                    disabled={!isReadyToSign}
                 >
                     <Text style={styles.toggleText}>{isSigning ? 'Signing...' : 'Play Sign Animation'}</Text>
                 </TouchableOpacity>

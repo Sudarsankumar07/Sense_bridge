@@ -55,10 +55,45 @@ const ALPHABET_SIGNS: Record<string, SignClipData> = {
     z: require('../../assets/signs/alphabet/z.json'),
 };
 
+// Exact bone names from Mixamo Y-Bot avatar.glb
+// Note: Mixamo GLB exports use underscore separator (mixamorig_RightHand),
+// NOT the colon-prefixed mixamorig:RightHand seen in Blender/FBX files.
 const BONE_ALIASES: Record<string, string[]> = {
-    RightHand: ['RightHand', 'mixamorigRightHand', 'right_hand'],
-    RightIndex1: ['RightIndex1', 'mixamorigRightHandIndex1', 'right_index_1'],
-    Head: ['Head', 'mixamorigHead', 'head'],
+    // Right arm chain
+    RightArm:          ['mixamorig_RightArm'],
+    RightForeArm:      ['mixamorig_RightForeArm'],
+    RightHand:         ['mixamorig_RightHand'],
+    RightShoulder:     ['mixamorig_RightShoulder'],
+    // Right thumb
+    RightHandThumb1:   ['mixamorig_RightHandThumb1'],
+    RightHandThumb2:   ['mixamorig_RightHandThumb2'],
+    RightHandThumb3:   ['mixamorig_RightHandThumb3'],
+    // Right index
+    RightHandIndex1:   ['mixamorig_RightHandIndex1'],
+    RightHandIndex2:   ['mixamorig_RightHandIndex2'],
+    RightHandIndex3:   ['mixamorig_RightHandIndex3'],
+    // Right middle
+    RightHandMiddle1:  ['mixamorig_RightHandMiddle1'],
+    RightHandMiddle2:  ['mixamorig_RightHandMiddle2'],
+    RightHandMiddle3:  ['mixamorig_RightHandMiddle3'],
+    // Right ring
+    RightHandRing1:    ['mixamorig_RightHandRing1'],
+    RightHandRing2:    ['mixamorig_RightHandRing2'],
+    // Right pinky
+    RightHandPinky1:   ['mixamorig_RightHandPinky1'],
+    RightHandPinky2:   ['mixamorig_RightHandPinky2'],
+    // Left arm chain
+    LeftArm:           ['mixamorig_LeftArm'],
+    LeftForeArm:       ['mixamorig_LeftForeArm'],
+    LeftHand:          ['mixamorig_LeftHand'],
+    LeftShoulder:      ['mixamorig_LeftShoulder'],
+    // Spine / Head
+    Hips:              ['mixamorig_Hips'],
+    Spine:             ['mixamorig_Spine'],
+    Spine1:            ['mixamorig_Spine1'],
+    Spine2:            ['mixamorig_Spine2'],
+    Neck:              ['mixamorig_Neck'],
+    Head:              ['mixamorig_Head'],
 };
 
 const CLIP_GAP_MS = 160;

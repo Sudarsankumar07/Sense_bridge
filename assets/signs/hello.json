@@ -1,26 +1,46 @@
 {
   "sign": "hello",
   "fps": 30,
-  "duration": 1.2,
+  "duration": 1.4,
   "frames": [
     {
       "time": 0.0,
       "bones": {
-        "RightHand": { "x": 0.0, "y": 0.3, "z": 0.1 },
-        "RightIndex1": { "x": 0.5, "y": 0.0, "z": 0.0 }
+        "RightArm":     { "x":  0.0,  "y":  0.0,  "z":  0.0 },
+        "RightForeArm": { "x":  0.0,  "y":  0.0,  "z":  0.0 },
+        "RightHand":    { "x":  0.0,  "y":  0.0,  "z":  0.0 }
       }
     },
     {
-      "time": 0.6,
+      "time": 0.35,
       "bones": {
-        "RightHand": { "x": 0.3, "y": 0.5, "z": 0.2 },
-        "RightIndex1": { "x": 0.1, "y": 0.0, "z": 0.0 }
+        "RightArm":     { "x": -1.1,  "y":  0.0,  "z": -0.9 },
+        "RightForeArm": { "x":  0.5,  "y":  0.0,  "z":  0.0 },
+        "RightHand":    { "x":  0.0,  "y":  0.35, "z":  0.0 }
       }
     },
     {
-      "time": 1.2,
+      "time": 0.65,
       "bones": {
-        "RightHand": { "x": 0.0, "y": 0.3, "z": 0.1 }
+        "RightArm":     { "x": -1.1,  "y":  0.0,  "z": -0.9 },
+        "RightForeArm": { "x":  0.5,  "y":  0.0,  "z":  0.0 },
+        "RightHand":    { "x":  0.0,  "y": -0.35, "z":  0.0 }
+      }
+    },
+    {
+      "time": 0.95,
+      "bones": {
+        "RightArm":     { "x": -1.1,  "y":  0.0,  "z": -0.9 },
+        "RightForeArm": { "x":  0.5,  "y":  0.0,  "z":  0.0 },
+        "RightHand":    { "x":  0.0,  "y":  0.35, "z":  0.0 }
+      }
+    },
+    {
+      "time": 1.4,
+      "bones": {
+        "RightArm":     { "x":  0.0,  "y":  0.0,  "z":  0.0 },
+        "RightForeArm": { "x":  0.0,  "y":  0.0,  "z":  0.0 },
+        "RightHand":    { "x":  0.0,  "y":  0.0,  "z":  0.0 }
       }
     }
   ]

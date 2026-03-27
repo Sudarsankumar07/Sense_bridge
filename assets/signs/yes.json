@@ -6,19 +6,41 @@
     {
       "time": 0.0,
       "bones": {
-        "Head": { "x": 0.0, "y": 0.0, "z": 0.0 }
+        "RightArm":     { "x": -0.5, "y":  0.0, "z": -0.3 },
+        "RightForeArm": { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x":  0.0, "y":  0.0, "z":  0.0 }
+      }
+    },
+    {
+      "time": 0.2,
+      "bones": {
+        "RightArm":     { "x": -0.5, "y":  0.0, "z": -0.3 },
+        "RightForeArm": { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x":  0.45,"y":  0.0, "z":  0.0 }
       }
     },
     {
       "time": 0.45,
       "bones": {
-        "Head": { "x": 0.2, "y": 0.0, "z": 0.0 }
+        "RightArm":     { "x": -0.5, "y":  0.0, "z": -0.3 },
+        "RightForeArm": { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x": -0.45,"y":  0.0, "z":  0.0 }
+      }
+    },
+    {
+      "time": 0.65,
+      "bones": {
+        "RightArm":     { "x": -0.5, "y":  0.0, "z": -0.3 },
+        "RightForeArm": { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x":  0.45,"y":  0.0, "z":  0.0 }
       }
     },
     {
       "time": 0.9,
       "bones": {
-        "Head": { "x": 0.0, "y": 0.0, "z": 0.0 }
+        "RightArm":     { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightForeArm": { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x":  0.0, "y":  0.0, "z":  0.0 }
       }
     }
   ]
