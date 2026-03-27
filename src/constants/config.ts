@@ -19,7 +19,7 @@ export const config = {
         },
         [AppMode.DEAF]: {
             title: 'Deaf Mode',
-            description: 'Speech to text with sign avatar',
+            description: 'Speech to text with sign planning pipeline',
             icon: 'ear-hearing-off',
         },
     },
@@ -28,7 +28,7 @@ export const config = {
     VOICE_COMMANDS: {
         BLIND_MODE: ['blind mode', 'blind', 'obstacle detection'],
         SIGN_MODE: ['sign mode', 'sign language', 'sign'],
-        DEAF_MODE: ['deaf mode', 'deaf', 'avatar mode'],
+        DEAF_MODE: ['deaf mode', 'deaf', 'caption mode'],
         OBSTACLE: ['obstacle', 'obstacle scan', 'obstacle detection'],
         CURRENCY: ['currency', 'currency scan', 'currency detection'],
         NAVIGATE: ['navigate', 'navigation', 'directions', 'take me to'],

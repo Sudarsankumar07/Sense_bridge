@@ -1,0 +1,27 @@
+{
+  "sign": "hello",
+  "fps": 30,
+  "duration": 1.2,
+  "frames": [
+    {
+      "time": 0.0,
+      "bones": {
+        "RightHand": { "x": 0.0, "y": 0.3, "z": 0.1 },
+        "RightIndex1": { "x": 0.5, "y": 0.0, "z": 0.0 }
+      }
+    },
+    {
+      "time": 0.6,
+      "bones": {
+        "RightHand": { "x": 0.3, "y": 0.5, "z": 0.2 },
+        "RightIndex1": { "x": 0.1, "y": 0.0, "z": 0.0 }
+      }
+    },
+    {
+      "time": 1.2,
+      "bones": {
+        "RightHand": { "x": 0.0, "y": 0.3, "z": 0.1 }
+      }
+    }
+  ]
+}

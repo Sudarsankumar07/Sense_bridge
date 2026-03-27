@@ -35,6 +35,41 @@ export interface SignDetection {
     confidence: number;
 }
 
+export interface SignGlossToken {
+    token: string;
+    confidence: number;
+}
+
+export interface SignGlossResult {
+    originalText: string;
+    language: 'ISL' | 'ASL';
+    tokens: SignGlossToken[];
+}
+
+export interface SignAnimationClip {
+    signId: string;
+    clipName: string;
+    defaultDurationMs: number;
+    handshape?: string;
+    nonManualMarker?: string;
+}
+
+export interface SignTimelineSegment {
+    segmentId: string;
+    signId: string;
+    clipName: string;
+    startMs: number;
+    durationMs: number;
+    nonManualMarker?: string;
+}
+
+export interface SignTimeline {
+    originalText: string;
+    language: 'ISL' | 'ASL';
+    totalDurationMs: number;
+    segments: SignTimelineSegment[];
+}
+
 export interface SpeechResult {
     text: string;
     isFinal: boolean;

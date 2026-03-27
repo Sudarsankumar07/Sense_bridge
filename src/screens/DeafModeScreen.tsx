@@ -1,63 +1,69 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as THREE from 'three';
 import { theme } from '../theme';
-import config from '../constants/config';
 import { hapticSelection } from '../services/haptics';
-import { AvatarView } from '../components';
-import { listenForCommand, speakAndWait } from '../services/voiceEngine';
+import { AvatarCanvas } from '../components/AvatarCanvas';
+import { createSignEngine } from '../hooks/useSignEngine';
 
 export const DeafModeScreen: React.FC = () => {
     const navigation = useNavigation();
-    const [currentTranscript, setCurrentTranscript] = useState('');
-    const [avatarReady, setAvatarReady] = useState(false);
-    const [currentEmotion] = useState<string>('neutral');
+    const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+    const [inputText, setInputText] = useState('');
+    const [avatarStatus, setAvatarStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [statusMessage, setStatusMessage] = useState('Loading avatar model...');
+    const [lastSignedText, setLastSignedText] = useState('');
+    const [isSigning, setIsSigning] = useState(false);
+    const [boneCount, setBoneCount] = useState(0);
+    const [boneReportPath, setBoneReportPath] = useState('');
 
-    // Handle avatar ready
-    const handleAvatarReady = useCallback(() => {
-        console.log('[DeafMode] Avatar is ready');
-        setAvatarReady(true);
+    const handleBack = useCallback(() => {
         hapticSelection();
-    }, []);
-
-    // Handle avatar error
-    const handleAvatarError = useCallback((error: string) => {
-        console.error('[DeafMode] Avatar error:', error);
-        Alert.alert('Avatar Error', error);
-    }, []);
-
-    useEffect(() => {
-        let active = true;
-
-        const runLoop = async () => {
-            await speakAndWait('Deaf mode activated. I am listening. Say go back to return.');
-
-            while (active) {
-                const result = await listenForCommand(3500);
-                if (!active) break;
-
-                const text = (result.text || '').trim();
-                if (!text) {
-                    continue;
-                }
-
-                const normalized = text.toLowerCase();
-                if (config.VOICE_COMMANDS.BACK.some(cmd => normalized.includes(cmd))) {
-                    hapticSelection();
-                    navigation.goBack();
-                    return;
-                }
-
-                setCurrentTranscript(text);
-            }
-        };
-
-        runLoop();
-        return () => { active = false; };
+        navigation.goBack();
     }, [navigation]);
+
+    const signEngine = useMemo(() => {
+        if (!mixerRef.current) {
+            return null;
+        }
+
+        return createSignEngine(mixerRef.current);
+    }, [avatarStatus]);
+
+    const handleAvatarReady = useCallback((mixer: THREE.AnimationMixer) => {
+        mixerRef.current = mixer;
+        setAvatarStatus('ready');
+        setStatusMessage('Avatar ready for signing.');
+    }, []);
+
+    const handleAvatarError = useCallback((message: string) => {
+        setAvatarStatus('error');
+        setStatusMessage(message);
+    }, []);
+
+    const handleBonesDetected = useCallback((bones: string[], reportPath: string) => {
+        setBoneCount(bones.length);
+        setBoneReportPath(reportPath);
+    }, []);
+
+    const handleSign = useCallback(async () => {
+        if (!signEngine || !inputText.trim()) {
+            return;
+        }
+
+        setIsSigning(true);
+        setLastSignedText(inputText.trim());
+        try {
+            signEngine.stop();
+            await signEngine.playText(inputText);
+        } finally {
+            setTimeout(() => setIsSigning(false), 300);
+        }
+    }, [signEngine, inputText]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -65,41 +71,69 @@ export const DeafModeScreen: React.FC = () => {
             <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
                 <TouchableOpacity
                     style={styles.backButton}
-                    onPress={() => {
-                        hapticSelection();
-                        navigation.goBack();
-                    }}
+                    onPress={handleBack}
                 >
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Deaf Mode</Text>
-                <Text style={styles.subtitle}>Speech to text with avatar-ready output.</Text>
+                <Text style={styles.subtitle}>Type text and play sign animation</Text>
             </LinearGradient>
 
-            <View style={styles.content}>
-                <View style={styles.statusCard}>
-                    <View style={styles.statusRow}>
-                        <View style={styles.statusItem}>
-                            <Text style={styles.statusLabel}>Listening</Text>
-                            <Text style={styles.statusValue}>Live transcription</Text>
-                        </View>
-                        <View style={styles.statusItem}>
-                            <Text style={styles.statusLabel}>Avatar</Text>
-                            <Text style={[styles.statusValue, avatarReady ? styles.statusReady : styles.statusLoading]}>
-                                {avatarReady ? '✓ Ready' : '⏳ Loading'}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                <AvatarView
-                    transcriptText={currentTranscript}
-                    visible={true}
-                    emotion={currentEmotion}
+            <ScrollView style={styles.content}>
+                <AvatarCanvas
                     onReady={handleAvatarReady}
                     onError={handleAvatarError}
+                    onBonesDetected={handleBonesDetected}
                 />
-            </View>
+
+                <View style={styles.statusCard}>
+                    <Text style={styles.statusLabel}>Avatar Status</Text>
+                    <Text style={[
+                        styles.statusValue,
+                        avatarStatus === 'ready'
+                            ? styles.statusReady
+                            : avatarStatus === 'error'
+                                ? styles.statusError
+                                : styles.statusLoading,
+                    ]}
+                    >
+                        {avatarStatus.toUpperCase()}
+                    </Text>
+                    <Text style={styles.statusDetail}>{statusMessage}</Text>
+                    <Text style={styles.statusDetail}>Bones detected: {boneCount}</Text>
+                    <Text style={styles.statusDetail} numberOfLines={1}>
+                        Bone report: {boneReportPath || 'Pending export...'}
+                    </Text>
+                </View>
+
+                <View style={styles.captionCard}>
+                    <Text style={styles.cardTitle}>Input Text</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        placeholder="Type text for avatar signing..."
+                        placeholderTextColor={theme.colors.textMuted}
+                        multiline
+                    />
+                </View>
+
+                <TouchableOpacity
+                    style={[
+                        styles.toggleButton,
+                        (!signEngine || !inputText.trim() || avatarStatus !== 'ready') && styles.disabledButton,
+                    ]}
+                    onPress={handleSign}
+                    disabled={!signEngine || !inputText.trim() || avatarStatus !== 'ready'}
+                >
+                    <Text style={styles.toggleText}>{isSigning ? 'Signing...' : 'Play Sign Animation'}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.captionCard}>
+                    <Text style={styles.cardTitle}>Last Signed Text</Text>
+                    <Text style={styles.cardBody}>{lastSignedText || 'No sign played yet.'}</Text>
+                </View>
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -138,11 +172,6 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: theme.spacing.lg,
     },
-    avatarContainer: {
-        marginBottom: theme.spacing.lg,
-        borderRadius: theme.radius.lg,
-        overflow: 'hidden',
-    },
     statusCard: {
         padding: theme.spacing.md,
         borderRadius: theme.radius.lg,
@@ -150,14 +179,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border,
         marginBottom: theme.spacing.lg,
-    },
-    statusRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: theme.spacing.md,
-    },
-    statusItem: {
-        flex: 1,
     },
     statusLabel: {
         ...theme.typography.caption,
@@ -174,5 +195,57 @@ const styles = StyleSheet.create({
     },
     statusLoading: {
         color: '#fbbf24',
+    },
+    statusError: {
+        color: '#f87171',
+    },
+    statusDetail: {
+        ...theme.typography.body,
+        color: theme.colors.text,
+        marginTop: theme.spacing.xs,
+    },
+    captionCard: {
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        marginBottom: theme.spacing.md,
+    },
+    toggleButton: {
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: '#22c55e',
+        alignItems: 'center',
+        marginBottom: theme.spacing.lg,
+        marginTop: theme.spacing.sm,
+    },
+    disabledButton: {
+        opacity: 0.5,
+    },
+    toggleText: {
+        ...theme.typography.bodyStrong,
+        color: '#052e16',
+    },
+    cardTitle: {
+        ...theme.typography.caption,
+        color: theme.colors.textMuted,
+        textTransform: 'uppercase',
+        marginBottom: theme.spacing.xs,
+    },
+    cardBody: {
+        ...theme.typography.body,
+        color: theme.colors.text,
+    },
+    input: {
+        minHeight: 72,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        borderRadius: theme.radius.md,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        color: theme.colors.text,
+        backgroundColor: 'rgba(15, 23, 42, 0.38)',
+        textAlignVertical: 'top',
     },
 });

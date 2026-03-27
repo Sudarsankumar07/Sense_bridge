@@ -1,0 +1,19 @@
+{
+  "sign": "alphabet_d",
+  "fps": 30,
+  "duration": 0.4,
+  "frames": [
+    {
+      "time": 0.0,
+      "bones": {
+        "RightHand": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      }
+    },
+    {
+      "time": 0.4,
+      "bones": {
+        "RightHand": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      }
+    }
+  ]
+}

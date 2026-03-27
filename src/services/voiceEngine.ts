@@ -1,6 +1,6 @@
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import config from '../constants/config';
 import { GOOGLE_CLOUD_VISION_API_KEY } from '@env';
