@@ -19,11 +19,15 @@ type SignClipData = {
 };
 
 const CORE_SIGNS: Record<string, SignClipData> = {
-    hello: require('../../assets/signs/hello.json'),
-    yes: require('../../assets/signs/yes.json'),
-    no: require('../../assets/signs/no.json'),
-    thankyou: require('../../assets/signs/thankyou.json'),
-    sorry: require('../../assets/signs/sorry.json'),
+    hello:     require('../../assets/signs/hello.json'),
+    yes:       require('../../assets/signs/yes.json'),
+    no:        require('../../assets/signs/no.json'),
+    thankyou:  require('../../assets/signs/thankyou.json'),
+    sorry:     require('../../assets/signs/sorry.json'),
+    please:    require('../../assets/signs/please.json'),
+    iloveyou:  require('../../assets/signs/iloveyou.json'),
+    good:      require('../../assets/signs/good.json'),
+    help:      require('../../assets/signs/help.json'),
 };
 
 const ALPHABET_SIGNS: Record<string, SignClipData> = {

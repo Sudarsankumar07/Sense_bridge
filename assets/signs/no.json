@@ -2,35 +2,79 @@
   "sign": "no",
   "fps": 30,
   "duration": 0.9,
+  "notes": "ASL NO: Index + middle finger close onto thumb twice",
   "frames": [
     {
       "time": 0.0,
       "bones": {
-        "Head": { "x":  0.0,  "y":  0.0,  "z":  0.0 }
+        "RightArm":           { "x": -0.3, "y":  0.0, "z": -0.6 },
+        "RightForeArm":       { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHand":          { "x":  0.0, "y":  0.3, "z":  0.0 },
+        "RightHandIndex1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex3":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle1":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle2":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle3":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandRing1":     { "x":  1.3, "y":  0.0, "z":  0.0 },
+        "RightHandRing2":     { "x":  1.3, "y":  0.0, "z":  0.0 },
+        "RightHandPinky1":    { "x":  1.3, "y":  0.0, "z":  0.0 },
+        "RightHandPinky2":    { "x":  1.3, "y":  0.0, "z":  0.0 },
+        "RightHandThumb1":    { "x":  0.2, "y": -0.5, "z":  0.0 },
+        "RightHandThumb2":    { "x":  0.3, "y":  0.0, "z":  0.0 }
       }
     },
     {
-      "time": 0.22,
+      "time": 0.2,
       "bones": {
-        "Head": { "x":  0.0,  "y":  0.35, "z":  0.0 }
+        "RightHandIndex1":    { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandIndex2":    { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandIndex3":    { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle1":   { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle2":   { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle3":   { "x":  1.1, "y":  0.0, "z":  0.0 }
       }
     },
     {
-      "time": 0.5,
+      "time": 0.4,
       "bones": {
-        "Head": { "x":  0.0,  "y": -0.35, "z":  0.0 }
+        "RightHandIndex1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex3":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle1":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle2":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle3":   { "x":  0.0, "y":  0.0, "z":  0.0 }
       }
     },
     {
-      "time": 0.72,
+      "time": 0.6,
       "bones": {
-        "Head": { "x":  0.0,  "y":  0.25, "z":  0.0 }
+        "RightHandIndex1":    { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandIndex2":    { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandIndex3":    { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle1":   { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle2":   { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle3":   { "x":  1.1, "y":  0.0, "z":  0.0 }
       }
     },
     {
       "time": 0.9,
       "bones": {
-        "Head": { "x":  0.0,  "y":  0.0,  "z":  0.0 }
+        "RightArm":           { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightForeArm":       { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHand":          { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex3":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle1":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle2":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandMiddle3":   { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandRing1":     { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandRing2":     { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandPinky1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandPinky2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandThumb1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandThumb2":    { "x":  0.0, "y":  0.0, "z":  0.0 }
       }
     }
   ]

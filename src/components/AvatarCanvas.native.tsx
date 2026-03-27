@@ -18,6 +18,14 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
     const clockRef = useRef(new THREE.Clock());
 
     const onContextCreate = async (gl: any) => {
+        // ── Suppress noisy EXGL warnings about unsupported pixelStorei params ──
+        const _origLog = console.log;
+        console.log = (...args: any[]) => {
+            const msg = typeof args[0] === 'string' ? args[0] : '';
+            if (msg.includes('EXGL:') || msg.includes('pixelStorei')) return;
+            _origLog(...args);
+        };
+
         const renderer = new Renderer({ gl });
         renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
         renderer.setClearColor(0x0b1021);
@@ -161,7 +169,55 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
                 console.warn('[AvatarCanvas] No bones found. Model may be unrigged — animations will not play.');
             }
 
+            // Restore console.log now that textures have loaded
+            console.log = _origLog;
+
+            // ── IDLE POSE ─────────────────────────────────────────────────────
+            // Mixamo exports in T-pose (both arms straight out). Bring arms
+            // down to sides so hands are visible and front-facing for signs.
+            // We do this by building a looping AnimationClip that holds the
+            // rest position — this persists between sign animations.
             const mixer = new THREE.AnimationMixer(gltf.scene);
+
+            const idleBones: Record<string, { x: number; y: number; z: number }> = {
+                mixamorig_RightShoulder: { x:  0.0,  y:  0.0,  z:  0.15 },
+                mixamorig_RightArm:     { x:  0.15, y:  0.2,  z: -1.45 },
+                mixamorig_RightForeArm: { x:  0.15, y: -0.3,  z:  0.0  },
+                mixamorig_RightHand:    { x:  0.1,  y:  0.0,  z:  0.0  },
+                mixamorig_LeftShoulder: { x:  0.0,  y:  0.0,  z: -0.15 },
+                mixamorig_LeftArm:      { x:  0.15, y: -0.2,  z:  1.45 },
+                mixamorig_LeftForeArm:  { x:  0.15, y:  0.3,  z:  0.0  },
+                mixamorig_LeftHand:     { x:  0.1,  y:  0.0,  z:  0.0  },
+                mixamorig_Spine:        { x:  0.05, y:  0.0,  z:  0.0  },
+                mixamorig_Spine1:       { x:  0.05, y:  0.0,  z:  0.0  },
+            };
+
+            const idleTracks: THREE.KeyframeTrack[] = [];
+            gltf.scene.traverse((obj: THREE.Object3D) => {
+                if (!(obj instanceof THREE.Bone)) return;
+                const pose = idleBones[obj.name];
+                if (!pose) return;
+                // Convert Euler → Quaternion for the keyframe track
+                const euler = new THREE.Euler(pose.x, pose.y, pose.z, 'XYZ');
+                const q = new THREE.Quaternion().setFromEuler(euler);
+                idleTracks.push(
+                    new THREE.QuaternionKeyframeTrack(
+                        `${obj.name}.quaternion`,
+                        [0, 9999],                    // hold forever
+                        [q.x, q.y, q.z, q.w, q.x, q.y, q.z, q.w]
+                    )
+                );
+            });
+
+            if (idleTracks.length > 0) {
+                const idleClip = new THREE.AnimationClip('idle', 9999, idleTracks);
+                const idleAction = mixer.clipAction(idleClip);
+                idleAction.setLoop(THREE.LoopRepeat, Infinity);
+                idleAction.weight = 1;
+                idleAction.play();
+                console.log('[AvatarCanvas] Idle pose applied, tracks:', idleTracks.length);
+            }
+
             mixerRef.current = mixer;
             onReady(mixer);
         } catch (error) {

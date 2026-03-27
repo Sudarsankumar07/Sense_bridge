@@ -1,15 +1,15 @@
 {
-  "sign": "thankyou",
+  "sign": "good",
   "fps": 30,
-  "duration": 1.0,
-  "notes": "ASL THANK YOU: Flat B-hand touches chin then moves forward",
+  "duration": 0.9,
+  "notes": "ASL GOOD: Flat B-hand at chin, moves down to rest in open left palm",
   "frames": [
     {
       "time": 0.0,
       "bones": {
         "RightArm":           { "x": -0.5, "y":  0.0, "z": -0.7 },
         "RightForeArm":       { "x":  1.5, "y":  0.0, "z":  0.0 },
-        "RightHand":          { "x": -0.2, "y":  0.0, "z":  0.0 },
+        "RightHand":          { "x": -0.1, "y":  0.0, "z":  0.0 },
         "RightHandIndex1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
         "RightHandIndex2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
         "RightHandIndex3":    { "x":  0.0, "y":  0.0, "z":  0.0 },
@@ -25,15 +25,15 @@
       }
     },
     {
-      "time": 0.55,
+      "time": 0.6,
       "bones": {
-        "RightArm":           { "x": -0.35,"y":  0.0, "z": -1.1 },
-        "RightForeArm":       { "x":  1.1, "y":  0.0, "z":  0.0 },
-        "RightHand":          { "x":  0.1, "y":  0.0, "z":  0.0 }
+        "RightArm":     { "x": -0.2, "y":  0.0, "z": -0.9 },
+        "RightForeArm": { "x":  1.1, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x":  0.1, "y":  0.0, "z":  0.0 }
       }
     },
     {
-      "time": 1.0,
+      "time": 0.9,
       "bones": {
         "RightArm":           { "x":  0.0, "y":  0.0, "z":  0.0 },
         "RightForeArm":       { "x":  0.0, "y":  0.0, "z":  0.0 },

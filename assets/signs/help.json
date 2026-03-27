@@ -1,14 +1,14 @@
 {
-  "sign": "yes",
+  "sign": "help",
   "fps": 30,
   "duration": 1.0,
-  "notes": "ASL YES: S-hand (closed fist) nods up and down twice",
+  "notes": "ASL HELP: Closed fist (A-hand) resting on open left palm, lifts upward",
   "frames": [
     {
       "time": 0.0,
       "bones": {
-        "RightArm":           { "x": -0.3, "y":  0.0, "z": -0.6 },
-        "RightForeArm":       { "x":  1.2, "y":  0.0, "z":  0.0 },
+        "RightArm":           { "x": -0.1, "y":  0.0, "z": -1.0 },
+        "RightForeArm":       { "x":  0.8, "y":  0.0, "z":  0.0 },
         "RightHand":          { "x":  0.0, "y":  0.0, "z":  0.0 },
         "RightHandIndex1":    { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandIndex2":    { "x":  1.3, "y":  0.0, "z":  0.0 },
@@ -20,26 +20,15 @@
         "RightHandRing2":     { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandPinky1":    { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandPinky2":    { "x":  1.3, "y":  0.0, "z":  0.0 },
-        "RightHandThumb1":    { "x":  0.5, "y": -0.3, "z":  0.0 },
-        "RightHandThumb2":    { "x":  0.5, "y":  0.0, "z":  0.0 }
-      }
-    },
-    {
-      "time": 0.25,
-      "bones": {
-        "RightHand": { "x":  0.45, "y":  0.0, "z":  0.0 }
+        "RightHandThumb1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandThumb2":    { "x":  0.0, "y":  0.0, "z":  0.0 }
       }
     },
     {
       "time": 0.5,
       "bones": {
-        "RightHand": { "x": -0.45, "y":  0.0, "z":  0.0 }
-      }
-    },
-    {
-      "time": 0.75,
-      "bones": {
-        "RightHand": { "x":  0.45, "y":  0.0, "z":  0.0 }
+        "RightArm":     { "x": -0.7, "y":  0.0, "z": -0.8 },
+        "RightForeArm": { "x":  0.9, "y":  0.0, "z":  0.0 }
       }
     },
     {

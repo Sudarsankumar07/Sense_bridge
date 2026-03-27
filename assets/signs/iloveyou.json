@@ -1,45 +1,35 @@
 {
-  "sign": "yes",
+  "sign": "iloveyou",
   "fps": 30,
   "duration": 1.0,
-  "notes": "ASL YES: S-hand (closed fist) nods up and down twice",
+  "notes": "ASL I LOVE YOU: ILY handshape — pinky, index and thumb extended, middle+ring curled",
   "frames": [
     {
       "time": 0.0,
       "bones": {
-        "RightArm":           { "x": -0.3, "y":  0.0, "z": -0.6 },
-        "RightForeArm":       { "x":  1.2, "y":  0.0, "z":  0.0 },
-        "RightHand":          { "x":  0.0, "y":  0.0, "z":  0.0 },
-        "RightHandIndex1":    { "x":  1.3, "y":  0.0, "z":  0.0 },
-        "RightHandIndex2":    { "x":  1.3, "y":  0.0, "z":  0.0 },
-        "RightHandIndex3":    { "x":  1.3, "y":  0.0, "z":  0.0 },
+        "RightArm":           { "x": -0.5, "y":  0.0, "z": -0.6 },
+        "RightForeArm":       { "x":  0.8, "y":  0.0, "z":  0.0 },
+        "RightHand":          { "x":  0.0, "y":  0.2, "z":  0.0 },
+        "RightHandIndex1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandIndex3":    { "x":  0.0, "y":  0.0, "z":  0.0 },
         "RightHandMiddle1":   { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandMiddle2":   { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandMiddle3":   { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandRing1":     { "x":  1.3, "y":  0.0, "z":  0.0 },
         "RightHandRing2":     { "x":  1.3, "y":  0.0, "z":  0.0 },
-        "RightHandPinky1":    { "x":  1.3, "y":  0.0, "z":  0.0 },
-        "RightHandPinky2":    { "x":  1.3, "y":  0.0, "z":  0.0 },
-        "RightHandThumb1":    { "x":  0.5, "y": -0.3, "z":  0.0 },
-        "RightHandThumb2":    { "x":  0.5, "y":  0.0, "z":  0.0 }
+        "RightHandPinky1":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandPinky2":    { "x":  0.0, "y":  0.0, "z":  0.0 },
+        "RightHandThumb1":    { "x":  0.0, "y":  0.5, "z":  0.0 },
+        "RightHandThumb2":    { "x":  0.0, "y":  0.0, "z":  0.0 }
       }
     },
     {
-      "time": 0.25,
+      "time": 0.4,
       "bones": {
-        "RightHand": { "x":  0.45, "y":  0.0, "z":  0.0 }
-      }
-    },
-    {
-      "time": 0.5,
-      "bones": {
-        "RightHand": { "x": -0.45, "y":  0.0, "z":  0.0 }
-      }
-    },
-    {
-      "time": 0.75,
-      "bones": {
-        "RightHand": { "x":  0.45, "y":  0.0, "z":  0.0 }
+        "RightArm":     { "x": -0.5, "y":  0.0, "z": -0.6 },
+        "RightForeArm": { "x":  0.8, "y":  0.0, "z":  0.0 },
+        "RightHand":    { "x":  0.0, "y":  0.2, "z":  0.0 }
       }
     },
     {
