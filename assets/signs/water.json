@@ -1,0 +1,46 @@
+{
+  "sign": "water",
+  "fps": 30,
+  "duration": 0.8,
+  "notes": "ASL WATER: Hand in W shape at lips, moves down.",
+  "frames": [
+    {
+      "time": 0.0,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x": -0.6, "y":  0.2,  "z": -0.2  },
+        "RightForeArm":       { "x":  0.5,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHandIndex1":    { "x":  0.4,  "y":  0.0,  "z":  0.0  },
+        "RightHandIndex2":    { "x":  0.3,  "y":  0.0,  "z":  0.0  },
+        "RightHandMiddle1":   { "x":  0.4,  "y":  0.0,  "z":  0.0  },
+        "RightHandMiddle2":   { "x":  0.3,  "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.4,
+      "bones": {
+        "RightArm":           { "x": -0.2, "y":  0.2,  "z": -0.2  },
+        "RightForeArm":       { "x":  0.3,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.1,  "y":  0.0,  "z":  0.0  },
+        "RightHandIndex1":    { "x":  0.4,  "y":  0.0,  "z":  0.0  },
+        "RightHandIndex2":    { "x":  0.3,  "y":  0.0,  "z":  0.0  },
+        "RightHandMiddle1":   { "x":  0.4,  "y":  0.0,  "z":  0.0  },
+        "RightHandMiddle2":   { "x":  0.3,  "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.8,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x":  0.15, "y":  0.0,  "z": -0.5  },
+        "RightForeArm":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHandIndex1":    { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHandIndex2":    { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHandMiddle1":   { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHandMiddle2":   { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    }
+  ]
+}

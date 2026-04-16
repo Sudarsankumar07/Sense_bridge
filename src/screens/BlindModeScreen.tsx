@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView } from 'expo-camera';
 import { theme } from '../theme';
 import { CameraViewComponent, AlertModal } from '../components';
+import { MicFAB } from '../components/MicFAB';
 import { captureFrame } from '../utils/camera';
 import { detectObjects } from '../services/cloudAI/objectDetection';
 import { detectCurrency } from '../services/cloudAI/currencyRecognition';
@@ -16,6 +17,7 @@ import { buildObstacleAlert, buildCurrencyAlert, shouldTriggerAlert } from '../u
 import { hapticWarning, hapticSuccess, hapticSelection } from '../services/haptics';
 import { speak } from '../services/voiceEngine';
 import { useVoiceCommands } from '../hooks/useVoiceCommands';
+import { useVolumeButtonTrigger } from '../hooks/useVolumeButtonTrigger';
 import { CloudError, RootStackParamList } from '../types';
 
 export const BlindModeScreen: React.FC = () => {
@@ -28,6 +30,9 @@ export const BlindModeScreen: React.FC = () => {
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertText, setAlertText] = useState('');
     const [cloudError, setCloudError] = useState<string | null>(null);
+
+    // Ref so MicFAB can expose its trigger to the volume-button hook
+    const micTriggerRef = useRef<(() => void) | null>(null);
 
     const toggleObstacle = useCallback(() => {
         setObstacleActive(prev => {
@@ -47,8 +52,9 @@ export const BlindModeScreen: React.FC = () => {
         });
     }, []);
 
-    useVoiceCommands({
-        intro: 'Blind mode. Say obstacle, currency, or navigate to toggle. Say go back to return.',
+    // On-demand voice commands (NO continuous loop — zero idle API cost)
+    const { triggerListen } = useVoiceCommands({
+        intro: 'Blind mode. Tap the mic button or press both volume keys to give a voice command. Say obstacle, currency, or navigate.',
         commands: {
             obstacle: toggleObstacle,
             currency: toggleCurrency,
@@ -57,7 +63,14 @@ export const BlindModeScreen: React.FC = () => {
         },
     });
 
-
+    // Volume Up + Down combo → same as pressing the mic FAB
+    useVolumeButtonTrigger({
+        enabled: isFocused,
+        onTrigger: () => {
+            // Fire the FAB programmatically — reuses the same listen flow
+            micTriggerRef.current?.();
+        },
+    });
 
     const handleCloudError = (error: unknown) => {
         if (error && typeof error === 'object' && 'source' in error) {
@@ -81,7 +94,7 @@ export const BlindModeScreen: React.FC = () => {
 
         const loop = async () => {
             while (active) {
-                // Pause detection when screen is not focused (e.g., NavigationScreen is active)
+                // Pause detection when screen is not focused
                 if (!isFocused) {
                     await new Promise(resolve => setTimeout(resolve, 500));
                     continue;
@@ -90,7 +103,6 @@ export const BlindModeScreen: React.FC = () => {
                 const frame = await captureFrame(cameraRef.current);
 
                 if (frame?.base64 && active) {
-                    // Clear previous error on new successful frame capture
                     setCloudError(null);
 
                     if (obstacleActive) {
@@ -131,7 +143,6 @@ export const BlindModeScreen: React.FC = () => {
                     }
                 }
 
-                // Wait 2 seconds before next capture
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
         };
@@ -189,6 +200,29 @@ export const BlindModeScreen: React.FC = () => {
                     </Text>
                 </View>
             </View>
+
+            {/* Floating Mic Button — bottom-right corner */}
+            <MicFAB
+                triggerRef={micTriggerRef}
+                listenTimeoutMs={5000}
+                onCommandReceived={(text) => {
+                    // useVoiceCommands.triggerListen() already dispatches internally,
+                    // but MicFAB calls onCommandReceived AFTER recognition.
+                    // We re-match here in case MicFAB is used standalone.
+                    const normalized = text.toLowerCase();
+                    if (normalized.includes('obstacle')) toggleObstacle();
+                    else if (normalized.includes('currency')) toggleCurrency();
+                    else if (normalized.includes('navigate') || normalized.includes('navigation')) {
+                        hapticSelection();
+                        navigation.navigate('Navigation');
+                    } else if (normalized.includes('back')) {
+                        hapticSelection();
+                        navigation.goBack();
+                    } else {
+                        speak(`Command not recognized: ${text}`);
+                    }
+                }}
+            />
 
             <AlertModal
                 visible={alertVisible}

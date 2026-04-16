@@ -36,7 +36,7 @@ An accessibility-first mobile app for Deaf, Blind, and Mute users — featuring 
 | **@react-three/fiber** `^9.5.0` | React renderer for Three.js (web path) |
 | **@react-three/drei** `^10.7.7` | Three.js helpers (web path) |
 
-> **Avatar Pipeline:** `.glb` humanoid model loaded via GLTFLoader → bones detected → `THREE.AnimationMixer` drives sign-animation clips → clips resolved from the sign lexicon using `animationLexicon.ts`.
+> **Avatar Pipeline:** A standard humanoid **Mixamo Y-Bot** (`avatar.glb`) is loaded via GLTFLoader. The pipeline parses the model's skeleton (e.g., `RightArm`, `LeftForeArm`, `RightHandIndex1`, etc.). `THREE.AnimationMixer` takes predefined sign-animation coordinate sequences (JSON) and applies mathematically interpolated rotations to the Y-Bot's specific bones over a set duration, creating fluid, continuous signing motions.
 
 ### AI / Cloud Services
 
@@ -131,8 +131,9 @@ App.tsx
 ### 🤟 Deaf Mode
 - Type text → sign-language avatar animation
 - 3D humanoid avatar rendered via Three.js + `expo-gl`
+- Uses the **Mixamo Y-Bot** as the base rigged model, combined with an FK (Forward Kinematics) animation system that maps joint rotations (shoulders, elbows, wrists, fingers) to timed keyframes.
 - Sign lexicon covers: HELLO, THANK YOU, YES, NO, HELP, PLEASE, STOP (+ fingerspell fallback)
-- Sign pipeline: Text → Gloss Mapper → Timeline Planner → Animation Executor → AnimationMixer
+- Sign pipeline: Text → Gloss Mapper → Timeline Planner (JSON sequences) → Animation Executor → Y-Bot AnimationMixer
 
 ### 🗣️ Sign Mode
 - Camera-based sign recognition (placeholder for MediaPipe/TFLite integration)
@@ -192,18 +193,20 @@ npm run ios
 
 ```
 src/
-├── components/         # Reusable UI components (AvatarCanvas, CameraView, etc.)
+├── components/         # Reusable UI components (AvatarCanvas, CameraView, NavigationMap, etc.)
 ├── constants/          # App config (API endpoints, voice settings, thresholds)
-├── hooks/              # Custom hooks (useVoiceCommands, useSignEngine, useDeafSignPipeline)
+├── hooks/              # Custom hooks (useVoiceCommands, useSignEngine, etc.)
 ├── navigation/         # AppNavigator stack definition
-├── screens/            # All screen components
-├── services/
+├── screens/            # All screen components (BlindMode, DeafMode, Navigation, etc.)
+├── services/           # Core services (voiceEngine, locationService, navigationService, etc.)
 │   ├── cloudAI/        # Object detection, currency, sign language, STT
 │   └── signLanguage/   # Gloss mapper, timeline planner/executor, animation lexicon
 ├── theme/              # Color palette, typography, spacing, gradients
 ├── types/              # Shared TypeScript types
-└── utils/              # Camera capture, decision engine, permissions
-Docs/                   # Architecture plans and integration guides
+└── utils/              # Helper functions (camera capture, decision engine, permissions)
+Docs/                   # Architecture plans, RCAs, and implementation guides
 assets/
-└── models/             # avatar.glb (humanoid rigged model)
+├── models/             # 3D models (avatar.glb)
+└── signs/              # Sign language JSON lexicons and alphabet signs
+scripts/                # Project utility and maintenance scripts
 ```

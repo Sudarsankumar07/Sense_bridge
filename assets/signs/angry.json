@@ -1,0 +1,60 @@
+{
+  "sign": "angry",
+  "fps": 30,
+  "duration": 1.2,
+  "notes": "ASL ANGRY: Arms crossed, eyebrows down. Shows frustration/anger.",
+  "frames": [
+    {
+      "time": 0.0,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x":  0.15, "y":  0.0,  "z": -0.5  },
+        "RightForeArm":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftShoulder":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.15, "y":  0.0,  "z":  0.5  },
+        "LeftForeArm":        { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.3,
+      "bones": {
+        "RightArm":           { "x":  0.3,  "y":  0.8,  "z": -0.8  },
+        "RightForeArm":       { "x": -0.5, "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.2,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.3,  "y": -0.8,  "z":  0.8  },
+        "LeftForeArm":        { "x": -0.5, "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x": -0.2, "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.6,
+      "bones": {
+        "RightArm":           { "x":  0.5,  "y":  1.2,  "z": -1.0  },
+        "RightForeArm":       { "x": -0.8, "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.3,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.5,  "y": -1.2,  "z":  1.0  },
+        "LeftForeArm":        { "x": -0.8, "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x": -0.3, "y":  0.0,  "z":  0.0  },
+        "Neck":               { "x":  0.1,  "y":  0.0,  "z":  0.0  },
+        "Head":               { "x":  0.15, "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 1.2,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x":  0.15, "y":  0.0,  "z": -0.5  },
+        "RightForeArm":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftShoulder":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.15, "y":  0.0,  "z":  0.5  },
+        "LeftForeArm":        { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "Neck":               { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "Head":               { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    }
+  ]
+}

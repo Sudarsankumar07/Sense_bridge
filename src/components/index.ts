@@ -4,3 +4,4 @@ export { LoadingIndicator } from './LoadingIndicator';
 export { AlertModal } from './AlertModal';
 export { CameraViewComponent } from './CameraView';
 export { ReadyPlayerMeAvatar } from './ReadyPlayerMeAvatar';
+export { MicFAB } from './MicFAB';

@@ -1,0 +1,60 @@
+{
+  "sign": "happy",
+  "fps": 30,
+  "duration": 1.0,
+  "notes": "ASL HAPPY: Hands sweep up the chest with smile gesture.",
+  "frames": [
+    {
+      "time": 0.0,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x":  0.15, "y":  0.0,  "z": -0.5  },
+        "RightForeArm":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftShoulder":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.15, "y":  0.0,  "z":  0.5  },
+        "LeftForeArm":        { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.3,
+      "bones": {
+        "RightArm":           { "x": -0.5, "y":  0.0,  "z": -0.6  },
+        "RightForeArm":       { "x":  0.2,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.1,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x": -0.5, "y":  0.0,  "z":  0.6  },
+        "LeftForeArm":        { "x":  0.2,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x": -0.1, "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.6,
+      "bones": {
+        "RightArm":           { "x": -0.8, "y":  0.2,  "z": -0.8  },
+        "RightForeArm":       { "x":  0.5,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x": -0.2, "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x": -0.8, "y": -0.2,  "z":  0.8  },
+        "LeftForeArm":        { "x":  0.5,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.2,  "y":  0.0,  "z":  0.0  },
+        "Spine":              { "x": -0.1, "y":  0.0,  "z":  0.0  },
+        "Neck":               { "x": -0.1, "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 1.0,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x":  0.15, "y":  0.0,  "z": -0.5  },
+        "RightForeArm":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftShoulder":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.15, "y":  0.0,  "z":  0.5  },
+        "LeftForeArm":        { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "Spine":              { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "Neck":               { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    }
+  ]
+}

@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../theme';
 import config from '../constants/config';
 import { NavigationRoute, GeocodingResult } from '../types';
-import { speak, speakAndWait, stopSpeaking, listenForCommand } from '../services/voiceEngine';
+import { speak, speakAndWait, stopSpeaking } from '../services/voiceEngine';
 import { hapticSelection, hapticSuccess, hapticWarning } from '../services/haptics';
 import {
     geocodeAddress,
@@ -24,17 +25,21 @@ import {
     LocationCoords,
 } from '../services/locationService';
 import { NavigationMap } from '../components/NavigationMap';
+import { MicFAB } from '../components/MicFAB';
+import { useVolumeButtonTrigger } from '../hooks/useVolumeButtonTrigger';
 
-type NavState = 'asking' | 'searching' | 'navigating' | 'arrived' | 'error';
+type NavState = 'idle' | 'asking' | 'searching' | 'navigating' | 'arrived' | 'error';
 
 export const NavigationScreen: React.FC = () => {
     const navigation = useNavigation();
-    const [navState, setNavState] = useState<NavState>('asking');
+    const isFocused = useIsFocused();
+    const [navState, setNavState] = useState<NavState>('idle');
     const [destinationName, setDestinationName] = useState('');
     const [currentInstruction, setCurrentInstruction] = useState('');
     const [distanceToTurn, setDistanceToTurn] = useState('');
     const [totalRemaining, setTotalRemaining] = useState('');
     const [currentStepIdx, setCurrentStepIdx] = useState(0);
+    const [fabDisabled, setFabDisabled] = useState(false);
 
     const routeRef = useRef<NavigationRoute | null>(null);
     const destCoordsRef = useRef<[number, number] | null>(null);
@@ -42,6 +47,9 @@ export const NavigationScreen: React.FC = () => {
     const lastAnnouncedStepRef = useRef(-1);
     const lastInstructionTimeRef = useRef(0);
     const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
+
+    // Ref that MicFAB exposes its trigger into (used by volume key hook)
+    const micTriggerRef = useRef<(() => void) | null>(null);
 
     // ── Stop navigation and clean up ──
     const stopNav = useCallback(async () => {
@@ -63,11 +71,9 @@ export const NavigationScreen: React.FC = () => {
         const destCoords = destCoordsRef.current;
         if (!route || !destCoords || !activeRef.current) return;
 
-        // Track user position for map
         setUserCoords([coords.longitude, coords.latitude]);
 
-        // Check if arrived
-        const destLat = destCoords[1]; // ORS is [lng, lat]
+        const destLat = destCoords[1];
         const destLon = destCoords[0];
         if (hasArrived(destLat, destLon, coords.latitude, coords.longitude)) {
             setNavState('arrived');
@@ -78,7 +84,6 @@ export const NavigationScreen: React.FC = () => {
             return;
         }
 
-        // Determine current step
         const stepIdx = getCurrentStepIndex(route, coords.latitude, coords.longitude);
         setCurrentStepIdx(stepIdx);
 
@@ -88,14 +93,12 @@ export const NavigationScreen: React.FC = () => {
         setCurrentInstruction(step.instruction);
         setDistanceToTurn(formatDistance(step.distance));
 
-        // Calculate total remaining distance
         let remaining = 0;
         for (let i = stepIdx; i < route.steps.length; i++) {
             remaining += route.steps[i].distance;
         }
         setTotalRemaining(formatDistance(remaining));
 
-        // Announce instruction if it's a new step or enough time has passed
         const now = Date.now();
         const shouldAnnounce =
             stepIdx !== lastAnnouncedStepRef.current ||
@@ -107,7 +110,6 @@ export const NavigationScreen: React.FC = () => {
             const msg = config.MESSAGES.NAV_TURN(step.instruction, formatDistance(step.distance));
             speak(msg);
 
-            // Haptic for upcoming turn
             if (step.distance <= config.NAVIGATION.UPCOMING_TURN_DISTANCE) {
                 hapticWarning();
             }
@@ -115,63 +117,71 @@ export const NavigationScreen: React.FC = () => {
     }, []);
 
     // ── Main navigation flow ──
+    // Now uses a SINGLE listenForCommand call (triggered by FAB / volume keys)
+    // instead of a continuous listen loop.
     useEffect(() => {
         activeRef.current = true;
 
         const runFlow = async () => {
-            // Retry loop for destination input — re-ask on failure instead of exiting
             const MAX_RETRIES = 3;
-            let destination = null;
+            let destination: GeocodingResult | null = null;
             let userLocation = null;
+
+            // ── Phase 1: Ask for destination ──
+            // Disable FAB while we run the guided TTS flow
+            setFabDisabled(true);
 
             for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
                 if (!activeRef.current) return;
 
-                // Step 1: Ask for destination
                 setNavState('asking');
                 if (attempt === 0) {
-                    await speakAndWait(config.MESSAGES.NAV_ASK_DESTINATION);
+                    await speakAndWait(
+                        config.MESSAGES.NAV_ASK_DESTINATION +
+                        ' Press both volume keys or tap the mic button to speak.'
+                    );
                 } else {
-                    await speakAndWait('Please say the place name again.');
+                    await speakAndWait('Please say the place name again. Tap the mic button when ready.');
                 }
 
                 if (!activeRef.current) return;
 
-                // Step 2: Listen for destination
-                const result = await listenForCommand(5000);
+                // Enable FAB so user can press it (or use volume keys)
+                setFabDisabled(false);
+                setNavState('asking');
+
+                // Wait for the user to press FAB/volume keys.
+                // MicFAB will fire onCommandReceived which resolves this promise.
+                const spokenText = await waitForMicInput();
+
+                setFabDisabled(true);
 
                 if (!activeRef.current) return;
 
-                if (!result.text) {
-                    await speakAndWait('I did not hear anything. Let me try again.');
+                if (!spokenText) {
+                    await speakAndWait('I did not hear anything. Please try again.');
                     continue;
                 }
 
-                const query = result.text;
-                setDestinationName(query);
+                setDestinationName(spokenText);
                 setNavState('searching');
-                await speakAndWait(config.MESSAGES.NAV_SEARCHING(query));
+                await speakAndWait(config.MESSAGES.NAV_SEARCHING(spokenText));
 
                 if (!activeRef.current) return;
 
-                // Step 3: Try to get user's current location
                 userLocation = await getCurrentLocation();
-                console.log('[Navigation] User location:', userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : 'unavailable');
 
                 if (!activeRef.current) return;
 
                 if (!userLocation) {
-                    await speakAndWait('GPS location is not available. Please enable location services in your phone settings.');
+                    await speakAndWait('GPS not available. Please enable location services.');
                 }
 
-                // Step 4: Geocode — use focus point if we have location, otherwise global search
                 let focusPoint: [number, number] | undefined;
                 if (userLocation) {
                     focusPoint = [userLocation.longitude, userLocation.latitude];
                 }
-                const results = await geocodeAddress(query, focusPoint);
-
-                console.log('[Navigation] Geocode results:', results.length, results.map(r => r.name));
+                const results = await geocodeAddress(spokenText, focusPoint);
 
                 if (!activeRef.current) return;
 
@@ -181,10 +191,9 @@ export const NavigationScreen: React.FC = () => {
                 }
 
                 destination = results[0];
-                break; // Success — exit retry loop
+                break;
             }
 
-            // If all retries exhausted, go back
             if (!destination) {
                 setNavState('error');
                 await speakAndWait('Could not find a destination after multiple attempts. Going back.');
@@ -195,20 +204,15 @@ export const NavigationScreen: React.FC = () => {
             setDestinationName(destination.name);
             destCoordsRef.current = destination.coordinates;
 
-            // Step 5: Get walking route
-            // If we have user location, use it as start. Otherwise use destination minus a small offset as demo.
+            // ── Phase 2: Get walking route ──
             let from: [number, number];
             if (userLocation) {
                 from = [userLocation.longitude, userLocation.latitude];
             } else {
-                // On web without GPS: use a point near the destination for demo purposes
-                console.log('[Navigation] No GPS — using nearby point as start for route preview');
                 from = [destination.coordinates[0] - 0.005, destination.coordinates[1] - 0.005];
             }
             const to = destination.coordinates;
             const route = await getWalkingRoute(from, to);
-
-            console.log('[Navigation] Route:', route ? `${route.steps.length} steps, ${route.totalDistance}m` : 'not found');
 
             if (!activeRef.current) return;
 
@@ -221,7 +225,7 @@ export const NavigationScreen: React.FC = () => {
 
             routeRef.current = route;
 
-            // Step 6: Announce and start navigation
+            // ── Phase 3: Start navigation ──
             setNavState('navigating');
             const totalDist = formatDistance(route.totalDistance);
             setTotalRemaining(totalDist);
@@ -233,74 +237,21 @@ export const NavigationScreen: React.FC = () => {
 
             if (!activeRef.current) return;
 
-            // Speak first instruction (wait for it to finish before listening)
             if (route.steps[0]) {
-                await speakAndWait(config.MESSAGES.NAV_TURN(route.steps[0].instruction, formatDistance(route.steps[0].distance)));
+                await speakAndWait(
+                    config.MESSAGES.NAV_TURN(route.steps[0].instruction, formatDistance(route.steps[0].distance))
+                );
             }
 
-            // Step 7: Start GPS tracking only if location is available
             if (userLocation) {
                 await startLocationTracking(handleLocationUpdate);
-            } else {
-                console.log('[Navigation] GPS unavailable — showing route info without live tracking');
             }
 
-            // Echo phrases to ignore (TTS output picked up by mic)
-            const echoPatterns = [
-                'where would you like to go',
-                'searching for',
-                'navigation started',
-                'could not find',
-                'walking route',
-                'you have arrived',
-                'navigation stopped',
-                'detected',
-                'meters ahead',
-            ];
-
-            // Step 8: Voice command listener loop (stop navigation / go back)
-            while (activeRef.current && navState !== 'arrived') {
-                const cmd = await listenForCommand(3000);
-                if (!activeRef.current) break;
-
-                if (cmd.text) {
-                    const normalized = cmd.text.toLowerCase();
-
-                    // Skip echo — text that matches TTS output
-                    if (echoPatterns.some(p => normalized.includes(p))) {
-                        console.log(`[Navigation] Ignoring echo: "${cmd.text}"`);
-                        continue;
-                    }
-
-                    const stopCmds = config.VOICE_COMMANDS.STOP_NAVIGATION;
-                    const backCmds = config.VOICE_COMMANDS.BACK;
-
-                    if (stopCmds.some(c => normalized.includes(c))) {
-                        await stopNav();
-                        speak(config.MESSAGES.NAV_STOPPED);
-                        hapticSelection();
-                        navigation.goBack();
-                        return;
-                    }
-
-                    if (backCmds.some(c => normalized.includes(c))) {
-                        await goBack();
-                        return;
-                    }
-
-                    // "repeat" — re-announce current instruction
-                    const repeatCmds = config.VOICE_COMMANDS.REPEAT;
-                    if (repeatCmds.some(c => normalized.includes(c))) {
-                        const route = routeRef.current;
-                        if (route && route.steps[currentStepIdx]) {
-                            const step = route.steps[currentStepIdx];
-                            await speakAndWait(config.MESSAGES.NAV_TURN(step.instruction, formatDistance(step.distance)));
-                        }
-                    }
-                }
-
-                await new Promise(r => setTimeout(r, 500));
-            }
+            // Now re-enable FAB for in-navigation commands (stop / repeat / back)
+            setFabDisabled(false);
+            await speakAndWait(
+                'Navigation started. Press both volume keys or tap mic to say stop, repeat, or back.'
+            );
         };
 
         const timer = setTimeout(() => runFlow(), 500);
@@ -312,37 +263,102 @@ export const NavigationScreen: React.FC = () => {
         };
     }, []);
 
-    // ── Render ──
+    // ── Wait for MicFAB input (promise-based) ──
+    // MicFAB resolves the pending resolver when a command is received.
+    const pendingMicResolve = useRef<((text: string | null) => void) | null>(null);
+
+    const waitForMicInput = useCallback((): Promise<string | null> => {
+        return new Promise(resolve => {
+            pendingMicResolve.current = resolve;
+        });
+    }, []);
+
+    // ── Handle in-navigation voice commands (stop / repeat / back) ──
+    const handleNavCommand = useCallback(
+        async (text: string) => {
+            const normalized = text.toLowerCase();
+
+            // If we're waiting for destination input, resolve the promise
+            if (pendingMicResolve.current) {
+                const resolver = pendingMicResolve.current;
+                pendingMicResolve.current = null;
+                resolver(text);
+                return;
+            }
+
+            // In-navigation commands
+            if (navState === 'navigating') {
+                const stopCmds = config.VOICE_COMMANDS.STOP_NAVIGATION;
+                const backCmds = config.VOICE_COMMANDS.BACK;
+                const repeatCmds = config.VOICE_COMMANDS.REPEAT;
+
+                if (stopCmds?.some((c: string) => normalized.includes(c))) {
+                    await stopNav();
+                    speak(config.MESSAGES.NAV_STOPPED);
+                    hapticSelection();
+                    navigation.goBack();
+                    return;
+                }
+
+                if (backCmds?.some((c: string) => normalized.includes(c))) {
+                    await goBack();
+                    return;
+                }
+
+                if (repeatCmds?.some((c: string) => normalized.includes(c))) {
+                    const route = routeRef.current;
+                    if (route && route.steps[currentStepIdx]) {
+                        const step = route.steps[currentStepIdx];
+                        speakAndWait(config.MESSAGES.NAV_TURN(step.instruction, formatDistance(step.distance)));
+                    }
+                }
+            }
+        },
+        [navState, currentStepIdx, stopNav, goBack, navigation]
+    );
+
+    // ── Volume Up + Down combo → fire MicFAB ──
+    useVolumeButtonTrigger({
+        enabled: isFocused,
+        onTrigger: () => {
+            micTriggerRef.current?.();
+        },
+    });
+
+    // ── Render helpers ──
     const getStateIcon = (): string => {
         switch (navState) {
-            case 'asking': return 'mic';
+            case 'asking':    return 'mic';
             case 'searching': return 'search';
             case 'navigating': return 'navigate';
-            case 'arrived': return 'checkmark-circle';
-            case 'error': return 'alert-circle';
-            default: return 'navigate';
+            case 'arrived':   return 'checkmark-circle';
+            case 'error':     return 'alert-circle';
+            default:          return 'navigate';
         }
     };
 
     const getStateColor = (): string => {
         switch (navState) {
-            case 'asking': return theme.colors.primary;
+            case 'asking':    return theme.colors.primary;
             case 'searching': return theme.colors.warning;
             case 'navigating': return theme.colors.accent;
-            case 'arrived': return theme.colors.success;
-            case 'error': return theme.colors.danger;
-            default: return theme.colors.primary;
+            case 'arrived':   return theme.colors.success;
+            case 'error':     return theme.colors.danger;
+            default:          return theme.colors.primary;
         }
     };
 
     const getStateLabel = (): string => {
         switch (navState) {
-            case 'asking': return 'Listening for destination...';
+            case 'idle':      return 'Starting...';
+            case 'asking':    return fabDisabled
+                ? 'Listen for instructions...'
+                : 'Tap mic or press Vol↑+Vol↓ to say destination';
             case 'searching': return `Searching: "${destinationName}"`;
             case 'navigating': return `Navigating to ${destinationName}`;
-            case 'arrived': return 'Arrived!';
-            case 'error': return 'Navigation error';
-            default: return '';
+            case 'arrived':   return 'Arrived!';
+            case 'error':     return 'Navigation error';
+            default:          return '';
         }
     };
 
@@ -377,7 +393,7 @@ export const NavigationScreen: React.FC = () => {
                     </View>
                 </View>
 
-                {/* Map view — always visible */}
+                {/* Map view */}
                 <NavigationMap
                     routeGeometry={routeRef.current?.geometry}
                     userPosition={userCoords}
@@ -385,7 +401,7 @@ export const NavigationScreen: React.FC = () => {
                     height={250}
                 />
 
-                {/* Current instruction — large for accessibility */}
+                {/* Current instruction */}
                 {navState === 'navigating' && (
                     <>
                         <View style={styles.instructionCard}>
@@ -403,7 +419,6 @@ export const NavigationScreen: React.FC = () => {
                             </Text>
                         </View>
 
-                        {/* Progress info */}
                         <View style={styles.progressRow}>
                             <View style={styles.progressItem}>
                                 <Text style={styles.progressLabel}>Remaining</Text>
@@ -417,7 +432,6 @@ export const NavigationScreen: React.FC = () => {
                             </View>
                         </View>
 
-                        {/* Stop button */}
                         <TouchableOpacity
                             style={styles.stopButton}
                             onPress={async () => {
@@ -453,6 +467,14 @@ export const NavigationScreen: React.FC = () => {
                     </View>
                 )}
             </ScrollView>
+
+            {/* Floating Mic FAB — bottom-right */}
+            <MicFAB
+                triggerRef={micTriggerRef}
+                listenTimeoutMs={5000}
+                disabled={fabDisabled}
+                onCommandReceived={handleNavCommand}
+            />
         </SafeAreaView>
     );
 };
@@ -493,7 +515,7 @@ const styles = StyleSheet.create({
     },
     contentInner: {
         gap: theme.spacing.lg,
-        paddingBottom: theme.spacing.xl,
+        paddingBottom: 100, // Space for FAB
     },
     stateCard: {
         padding: theme.spacing.md,

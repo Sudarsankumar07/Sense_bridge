@@ -1,0 +1,216 @@
+{
+  "sign": "hungry",
+  "fps": 30,
+  "duration": 0.8,
+  "notes": "ASL HUNGRY: Right C-hand at throat, moves downward along chest/stomach. Can be repeated motion. Shows hunger/eating related gesture.",
+  "handshape": {
+    "RightHand": "C-hand (curved/claw shape)",
+    "description": "Hand shaped like holding a ball, all fingers curved as if holding food"
+  },
+  "frames": [
+    {
+      "time": 0.0,
+      "description": "Start: C-hand at throat/upper chest",
+      "bones": {
+        "RightArm": {
+          "x": -0.3,
+          "y": 0.05,
+          "z": -0.4
+        },
+        "RightForeArm": {
+          "x": 0.6,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHand": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandIndex1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandIndex2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandIndex3": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandMiddle1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandMiddle2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandMiddle3": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandRing1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandRing2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandPinky1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandPinky2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandThumb1": {
+          "x": 0.2,
+          "y": 0.1,
+          "z": 0.0
+        },
+        "RightHandThumb2": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.25,
+      "description": "Moving: Hand slides down the chest",
+      "bones": {
+        "RightArm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -0.4
+        },
+        "RightForeArm": {
+          "x": 0.3,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHand": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.5,
+      "description": "Extended: Hand at waist/stomach level",
+      "bones": {
+        "RightArm": {
+          "x": 0.3,
+          "y": -0.05,
+          "z": -0.3
+        },
+        "RightForeArm": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHand": {
+          "x": 0.1,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.8,
+      "description": "End: Return to starting position",
+      "bones": {
+        "RightArm": {
+          "x": -0.3,
+          "y": 0.05,
+          "z": -0.4
+        },
+        "RightForeArm": {
+          "x": 0.6,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHand": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandIndex1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandIndex2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandIndex3": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandMiddle1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandMiddle2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandMiddle3": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandRing1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandRing2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandPinky1": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandPinky2": {
+          "x": 0.5,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHandThumb1": {
+          "x": 0.2,
+          "y": 0.1,
+          "z": 0.0
+        },
+        "RightHandThumb2": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    }
+  ]
+}

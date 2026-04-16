@@ -1,0 +1,56 @@
+{
+  "sign": "tired",
+  "fps": 30,
+  "duration": 0.9,
+  "notes": "ASL TIRED: Hands brush down face from eyes, showing exhaustion.",
+  "frames": [
+    {
+      "time": 0.0,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x": -0.7, "y":  0.1,  "z": -0.1  },
+        "RightForeArm":       { "x":  0.8,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftShoulder":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x": -0.7, "y": -0.1,  "z":  0.1  },
+        "LeftForeArm":        { "x":  0.8,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.4,
+      "bones": {
+        "RightArm":           { "x": -0.4, "y":  0.1,  "z": -0.1  },
+        "RightForeArm":       { "x":  0.5,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.1,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x": -0.4, "y": -0.1,  "z":  0.1  },
+        "LeftForeArm":        { "x":  0.5,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x": -0.1, "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.7,
+      "bones": {
+        "RightArm":           { "x":  0.0,  "y":  0.0,  "z": -0.3  },
+        "RightForeArm":       { "x":  0.2,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x": -0.2, "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.0,  "y":  0.0,  "z":  0.3  },
+        "LeftForeArm":        { "x":  0.2,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.2,  "y":  0.0,  "z":  0.0  }
+      }
+    },
+    {
+      "time": 0.9,
+      "bones": {
+        "RightShoulder":      { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightArm":           { "x":  0.15, "y":  0.0,  "z": -0.5  },
+        "RightForeArm":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "RightHand":          { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftShoulder":       { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftArm":            { "x":  0.15, "y":  0.0,  "z":  0.5  },
+        "LeftForeArm":        { "x":  0.0,  "y":  0.0,  "z":  0.0  },
+        "LeftHand":           { "x":  0.0,  "y":  0.0,  "z":  0.0  }
+      }
+    }
+  ]
+}

@@ -1,97 +1,97 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { listenForCommand, speakAndWait } from '../services/voiceEngine';
 import config from '../constants/config';
 
 type CommandMap = Record<string, () => void>;
 
 type UseVoiceCommandsOptions = {
-    /** Message spoken when the screen mounts */
+    /** Message spoken once when the screen mounts */
     intro: string;
     /** Map of command keys to handler functions */
     commands: CommandMap;
-    /** Whether the voice loop is active (pause during camera etc.) */
-    active?: boolean;
-    /** Delay in ms between listen cycles (default 500) */
-    loopDelay?: number;
+    /** Timeout in ms for each listen session (default: 5000) */
+    listenTimeoutMs?: number;
+};
+
+type UseVoiceCommandsReturn = {
+    /**
+     * Call this to start ONE voice recognition session.
+     * Designed to be triggered by MicFAB press or volume button combo.
+     * Returns true if a command was matched.
+     */
+    triggerListen: () => Promise<boolean>;
 };
 
 /**
- * Reusable hook that speaks an intro, then continuously listens for voice
- * commands and dispatches them to the provided handlers.
+ * Reusable hook for on-demand voice command dispatch.
  *
- * Command matching uses the keywords defined in config.VOICE_COMMANDS.
- * The `commands` keys should match config keys in lowercase:
- *   e.g. { obstacle: fn, currency: fn, back: fn }
+ * IMPORTANT: This hook NO LONGER runs a continuous listen loop.
+ * Voice recognition only starts when `triggerListen()` is called,
+ * which should be connected to the MicFAB button or volume key combo.
+ * This eliminates constant Google Cloud STT API calls.
+ *
+ * It still:
+ *  - Speaks the intro message once on mount (TTS only, no STT cost)
+ *  - Matches spoken text to config.VOICE_COMMANDS keywords
  */
 export const useVoiceCommands = ({
     intro,
     commands,
-    active = true,
-    loopDelay = 500,
-}: UseVoiceCommandsOptions) => {
-    const activeRef = useRef(true);
+    listenTimeoutMs = 5000,
+}: UseVoiceCommandsOptions): UseVoiceCommandsReturn => {
     const hasSpokenIntro = useRef(false);
+    const commandsRef = useRef(commands);
 
-    const matchCommand = useCallback(
-        (text: string): (() => void) | null => {
-            const normalized = text.toLowerCase();
+    // Keep commands ref up to date if parent re-renders
+    useEffect(() => {
+        commandsRef.current = commands;
+    }, [commands]);
 
-            for (const [key, handler] of Object.entries(commands)) {
-                const configKey = key.toUpperCase() as keyof typeof config.VOICE_COMMANDS;
-                const keywords = config.VOICE_COMMANDS[configKey];
+    // Speak intro once on mount (TTS only — zero STT cost)
+    useEffect(() => {
+        if (hasSpokenIntro.current) return;
+        hasSpokenIntro.current = true;
 
-                if (keywords) {
-                    if (keywords.some((kw: string) => normalized.includes(kw))) {
-                        return handler;
-                    }
+        const timer = setTimeout(() => {
+            speakAndWait(intro).catch(() => { });
+        }, 400);
+
+        return () => clearTimeout(timer);
+    }, [intro]);
+
+    // Match recognized text against command keywords
+    const matchCommand = useCallback((text: string): (() => void) | null => {
+        const normalized = text.toLowerCase();
+
+        for (const [key, handler] of Object.entries(commandsRef.current)) {
+            const configKey = key.toUpperCase() as keyof typeof config.VOICE_COMMANDS;
+            const keywords = config.VOICE_COMMANDS[configKey];
+
+            if (keywords) {
+                if (keywords.some((kw: string) => normalized.includes(kw))) {
+                    return handler;
                 }
             }
-            return null;
-        },
-        [commands]
-    );
+        }
+        return null;
+    }, []);
 
-    useEffect(() => {
-        activeRef.current = active;
-    }, [active]);
+    /**
+     * Fire a single listen + dispatch cycle.
+     * Connect this to MicFAB.onCommandReceived or volume button trigger.
+     */
+    const triggerListen = useCallback(async (): Promise<boolean> => {
+        const result = await listenForCommand(listenTimeoutMs);
 
-    useEffect(() => {
-        let mounted = true;
-        activeRef.current = active;
-
-        const loop = async () => {
-            // Speak intro once
-            if (!hasSpokenIntro.current) {
-                hasSpokenIntro.current = true;
-                await speakAndWait(intro);
+        if (result.text) {
+            const handler = matchCommand(result.text);
+            if (handler) {
+                handler();
+                return true;
             }
+        }
+        return false;
+    }, [matchCommand, listenTimeoutMs]);
 
-            while (mounted && activeRef.current) {
-                const result = await listenForCommand(3000);
-
-                if (!mounted || !activeRef.current) break;
-
-                if (result.text) {
-                    const handler = matchCommand(result.text);
-                    if (handler) {
-                        handler();
-                        // Small pause after executing a command
-                        await new Promise((r) => setTimeout(r, 1000));
-                    }
-                }
-
-                // Small yield between listen cycles
-                await new Promise((r) => setTimeout(r, loopDelay));
-            }
-        };
-
-        // Small delay before starting so the screen renders first
-        const timer = setTimeout(() => loop(), 300);
-
-        return () => {
-            mounted = false;
-            activeRef.current = false;
-            clearTimeout(timer);
-        };
-    }, [intro, matchCommand, active, loopDelay]);
+    return { triggerListen };
 };

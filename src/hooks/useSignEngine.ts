@@ -19,6 +19,7 @@ type SignClipData = {
 };
 
 const CORE_SIGNS: Record<string, SignClipData> = {
+    // Original core signs
     hello:     require('../../assets/signs/hello.json'),
     yes:       require('../../assets/signs/yes.json'),
     no:        require('../../assets/signs/no.json'),
@@ -28,6 +29,15 @@ const CORE_SIGNS: Record<string, SignClipData> = {
     iloveyou:  require('../../assets/signs/iloveyou.json'),
     good:      require('../../assets/signs/good.json'),
     help:      require('../../assets/signs/help.json'),
+    // ✅ NEW: Emotional expressions
+    angry:     require('../../assets/signs/angry.json'),
+    happy:     require('../../assets/signs/happy.json'),
+    sad:       require('../../assets/signs/sad.json'),
+    // ✅ NEW: Practical needs
+    hungry:    require('../../assets/signs/hungry.json'),
+    water:     require('../../assets/signs/water.json'),
+    bathroom:  require('../../assets/signs/bathroom.json'),
+    tired:     require('../../assets/signs/tired.json'),
 };
 
 const ALPHABET_SIGNS: Record<string, SignClipData> = {
@@ -122,9 +132,12 @@ const toClip = (name: string, signData: SignClipData): THREE.AnimationClip | nul
             }
 
             times.push(frame.time);
-            const quat = new THREE.Quaternion().setFromEuler(
-                new THREE.Euler(bone.x, bone.y, bone.z)
-            );
+            // ✅ CRITICAL FIX: Use correct Euler rotation order (ZYX) for Mixamo avatar
+            // Mixamo exports typically use ZYX order, not default XYZ
+            // This ensures bone rotations are computed correctly for visible signing animation
+            const ROTATION_ORDER: THREE.EulerOrder = 'ZYX';
+            const euler = new THREE.Euler(bone.x, bone.y, bone.z, ROTATION_ORDER);
+            const quat = new THREE.Quaternion().setFromEuler(euler);
             values.push(quat.x, quat.y, quat.z, quat.w);
         });
 
@@ -141,6 +154,11 @@ const toClip = (name: string, signData: SignClipData): THREE.AnimationClip | nul
             });
         }
     });
+
+    // ✅ DIAGNOSTIC: Log if animation has no tracks (indicates rotation order or bone naming issue)
+    if (tracks.length === 0) {
+        console.warn(`[SignEngine] ⚠️ Animation "${name}" has 0 tracks! Bones: ${Array.from(boneNames).join(', ')}`);
+    }
 
     if (tracks.length === 0) {
         return null;
@@ -162,9 +180,33 @@ const normalizeWord = (word: string): string => {
     return cleaned;
 };
 
+// 🔍 DIAGNOSTIC: Function to report what bones are in animations vs what's in aliases
+const diagnosticReport = () => {
+    const allBonesInSigns = new Set<string>();
+    Object.values(CORE_SIGNS).forEach((sign) => {
+        sign.frames.forEach((frame) => {
+            Object.keys(frame.bones).forEach((bone) => allBonesInSigns.add(bone));
+        });
+    });
+    
+    const aliasedBones = new Set(Object.keys(BONE_ALIASES));
+    const missing = Array.from(allBonesInSigns).filter((b) => !aliasedBones.has(b));
+    
+    console.log('[SignEngine] 🔍 DIAGNOSTIC REPORT:');
+    console.log('[SignEngine] Bone aliases defined:', aliasedBones.size);
+    console.log('[SignEngine] Unique bones in sign JSON:', allBonesInSigns.size);
+    console.log('[SignEngine] Bones in signs but NOT in aliases:', missing.length > 0 ? missing : 'NONE (✅ OK)');
+    if (missing.length > 0) {
+        console.warn('[SignEngine] ❌ ISSUE: Add these to BONE_ALIASES:', missing);
+    }
+};
+
 export const createSignEngine = (mixer: THREE.AnimationMixer) => {
     let activeTimers: ReturnType<typeof setTimeout>[] = [];
     let currentActions: THREE.AnimationAction[] = [];
+    
+    // Run diagnostic on engine creation
+    diagnosticReport();
 
     const clearPlayback = () => {
         activeTimers.forEach((timer) => clearTimeout(timer));
@@ -216,18 +258,57 @@ export const createSignEngine = (mixer: THREE.AnimationMixer) => {
 
         const words = textToGloss(text);
         if (words.length === 0) {
+            console.log('[SignEngine] ❌ No words to sign');
             return;
         }
 
+        // ✅ DEBUG: Log animation sequence start
+        console.log('[SignEngine] 🎭 TEXT TO SIGN:', text);
+        console.log('[SignEngine] 📝 GLOSSES:', words);
+
         let delayMs = 0;
         let previousAction: THREE.AnimationAction | null = null;
+        let totalDuration = 0;
 
-        words.forEach((word) => {
+        words.forEach((word, wordIndex) => {
             const directClip = buildSignClip(word);
             const clips = directClip ? [directClip] : buildFingerspellClips(word);
 
-            clips.forEach((clip) => {
+            // ✅ DEBUG: Log each word being processed
+            console.log(
+                `[SignEngine] 📌 Word ${wordIndex + 1}/${words.length}: "${word}"`,
+                {
+                    clipCount: clips.length,
+                    usingDirect: !!directClip,
+                    clipNames: clips.map((c) => c.name),
+                }
+            );
+
+            clips.forEach((clip, clipIndex) => {
                 const timer = setTimeout(() => {
+                    // ✅ DEBUG: Log when animation actually plays
+                    const trackDetails = clip.tracks.slice(0, 5).map((t) => {
+                        const boneName = t.name.split('.')[0];
+                        return boneName.replace('mixamorig_', '');
+                    });
+                    console.log(
+                        `[SignEngine] ▶️ PLAYING (${wordIndex + 1}.${clipIndex + 1}): "${clip.name}"`,
+                        {
+                            duration_ms: (clip.duration * 1000).toFixed(0),
+                            tracks: clip.tracks.length,
+                            bones: trackDetails,
+                            delay_ms: delayMs,
+                        }
+                    );
+
+                    if (clip.tracks.length === 0) {
+                        console.warn('[SignEngine] 🔴 CRITICAL: Animation has 0 tracks!');
+                        console.warn('[SignEngine]    This means:');
+                        console.warn('[SignEngine]    1. Bone names DON\'T match BONE_ALIASES');
+                        console.warn('[SignEngine]    2. Check hello.json bone names vs BONE_ALIASES mapping');
+                        console.warn('[SignEngine]    3. Verify rotation order is ZYX (not XYZ)');
+                    }
+
                     const action = mixer.clipAction(clip);
                     action.setLoop(THREE.LoopOnce, 1);
                     action.clampWhenFinished = true;
@@ -244,12 +325,20 @@ export const createSignEngine = (mixer: THREE.AnimationMixer) => {
 
                 activeTimers.push(timer);
 
-                delayMs += clip.duration * 1000 + CLIP_GAP_MS;
+                const clipDuration = clip.duration * 1000 + CLIP_GAP_MS;
+                delayMs += clipDuration;
+                totalDuration += clipDuration;
             });
         });
 
+        // ✅ DEBUG: Log total animation duration
+        console.log(`[SignEngine] ⏱️ TOTAL ANIMATION DURATION: ${totalDuration.toFixed(0)}ms`);
+
         await new Promise<void>((resolve) => {
-            const doneTimer = setTimeout(() => resolve(), delayMs + 100);
+            const doneTimer = setTimeout(() => {
+                console.log('[SignEngine] ✅ ANIMATION SEQUENCE COMPLETE');
+                resolve();
+            }, delayMs + 100);
             activeTimers.push(doneTimer);
         });
     };

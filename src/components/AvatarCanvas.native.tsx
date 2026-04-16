@@ -32,11 +32,12 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(
-            60,
+            42,   // narrower FOV = more zoom on the upper body
             gl.drawingBufferWidth / gl.drawingBufferHeight,
             0.01,
             1000
         );
+        // Initial position — frameModel() will override this after loading
         camera.position.set(0, 1.45, 1.8);
         camera.lookAt(0, 1.2, 0);
 
@@ -91,18 +92,21 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             root.position.z -= scaledCenter.z;
             root.position.y -= scaledBox.min.y;
 
-            // ── CAMERA ──────────────────────────────────────────────────────
-            // Fixed camera — looks at chest height, 2.5 units back.
-            // Use a fixed distance instead of fitDistance to guarantee
-            // the model is always within the camera frustum.
-            const eyeHeight  = scaledSize.y * 0.55;  // ~chest level
-            const camDist    = 2.5;
+            // ── CAMERA — Zoomed on upper body ────────────────────────────────
+            // We want to frame the avatar from roughly waist to top of head,
+            // making arm/hand signs clearly visible.
+            // eyeHeight targets ~65% up the model (mid-chest / shoulder area).
+            // camDist is kept shorter (1.7) combined with narrow FOV (42°)
+            // to fill the canvas with just the signing zone.
+            const eyeHeight  = scaledSize.y * 0.65;  // shoulder / upper-chest
+            const camDist    = 1.7;                   // closer than before
+            camera.fov = 42;                          // narrow FOV for zoom
             camera.position.set(0, eyeHeight, camDist);
-            camera.lookAt(0, eyeHeight * 0.75, 0);
+            camera.lookAt(0, eyeHeight * 0.82, 0);   // focus slightly below eye
             camera.near = 0.01;
             camera.far  = 1000;
             camera.updateProjectionMatrix();
-            console.log('[AvatarCanvas] Camera set — eye:', eyeHeight.toFixed(2), 'dist:', camDist);
+            console.log('[AvatarCanvas] Camera set — eye:', eyeHeight.toFixed(2), 'dist:', camDist, 'fov: 42');
         };
 
         try {
@@ -151,12 +155,36 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             const uniqueBones = Array.from(new Set(detectedBones)).sort((a, b) => a.localeCompare(b));
             console.log('[AvatarCanvas] Bones detected:', uniqueBones.length, uniqueBones.slice(0, 5));
 
+            // ✅ DIAGNOSTIC: Log skeleton structure for debugging animation issues
+            const skeletonStats = {
+                totalBones: uniqueBones.length,
+                rightArmBones: uniqueBones.filter((b) => b.includes('Right') && (b.includes('Arm') || b.includes('Shoulder'))),
+                leftArmBones: uniqueBones.filter((b) => b.includes('Left') && (b.includes('Arm') || b.includes('Shoulder'))),
+                fingerBones: uniqueBones.filter((b) => b.includes('Hand')).length,
+                spineBones: uniqueBones.filter((b) => b.includes('Spine')).length,
+            };
+            console.log('[AvatarCanvas] ========== SKELETON DIAGNOSTIC ==========');
+            console.log('[AvatarCanvas] Total Bones:', skeletonStats.totalBones);
+            console.log('[AvatarCanvas] Right Arm Chain:', skeletonStats.rightArmBones);
+            console.log('[AvatarCanvas] Left Arm Chain:', skeletonStats.leftArmBones);
+            console.log('[AvatarCanvas] Finger Bones Count:', skeletonStats.fingerBones);
+            console.log('[AvatarCanvas] =====================================');
+
             const reportPath = `${FileSystem.documentDirectory ?? ''}sensebridge-avatar-bones.json`;
             try {
                 if (FileSystem.documentDirectory) {
                     await FileSystem.writeAsStringAsync(
                         reportPath,
-                        JSON.stringify({ generatedAt: new Date().toISOString(), totalBones: uniqueBones.length, bones: uniqueBones }, null, 2),
+                        JSON.stringify(
+                            {
+                                generatedAt: new Date().toISOString(),
+                                totalBones: uniqueBones.length,
+                                bones: uniqueBones,
+                                skeletonStats,
+                            },
+                            null,
+                            2
+                        ),
                         { encoding: FileSystem.EncodingType.UTF8 }
                     );
                     onBonesDetected?.(uniqueBones, reportPath);
@@ -179,17 +207,22 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             // rest position — this persists between sign animations.
             const mixer = new THREE.AnimationMixer(gltf.scene);
 
+            // ✅ IDLE POSE: Arms relaxed at sides (recalibrated for ZYX rotation order)
+            // These Euler angles position arms naturally for sign language on top
             const idleBones: Record<string, { x: number; y: number; z: number }> = {
-                mixamorig_RightShoulder: { x:  0.0,  y:  0.0,  z:  0.15 },
-                mixamorig_RightArm:     { x:  0.15, y:  0.2,  z: -1.45 },
-                mixamorig_RightForeArm: { x:  0.15, y: -0.3,  z:  0.0  },
-                mixamorig_RightHand:    { x:  0.1,  y:  0.0,  z:  0.0  },
-                mixamorig_LeftShoulder: { x:  0.0,  y:  0.0,  z: -0.15 },
-                mixamorig_LeftArm:      { x:  0.15, y: -0.2,  z:  1.45 },
-                mixamorig_LeftForeArm:  { x:  0.15, y:  0.3,  z:  0.0  },
-                mixamorig_LeftHand:     { x:  0.1,  y:  0.0,  z:  0.0  },
-                mixamorig_Spine:        { x:  0.05, y:  0.0,  z:  0.0  },
-                mixamorig_Spine1:       { x:  0.05, y:  0.0,  z:  0.0  },
+                // Right arm down to side
+                mixamorig_RightShoulder: { x:  0.0,  y:  0.0,  z:  0.0  },
+                mixamorig_RightArm:     { x:  0.0,  y:  0.0,  z: -0.5  },  // Arm down
+                mixamorig_RightForeArm: { x:  0.0,  y:  0.0,  z:  0.0  },  // Forearm neutral
+                mixamorig_RightHand:    { x:  0.0,  y:  0.0,  z:  0.0  },  // Hand neutral
+                // Left arm down to side
+                mixamorig_LeftShoulder: { x:  0.0,  y:  0.0,  z:  0.0  },
+                mixamorig_LeftArm:      { x:  0.0,  y:  0.0,  z:  0.5   },  // Arm down
+                mixamorig_LeftForeArm:  { x:  0.0,  y:  0.0,  z:  0.0  },  // Forearm neutral
+                mixamorig_LeftHand:     { x:  0.0,  y:  0.0,  z:  0.0  },  // Hand neutral
+                // Spine slight curve
+                mixamorig_Spine:        { x:  0.0,  y:  0.0,  z:  0.0  },
+                mixamorig_Spine1:       { x:  0.0,  y:  0.0,  z:  0.0  },
             };
 
             const idleTracks: THREE.KeyframeTrack[] = [];
@@ -197,8 +230,10 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
                 if (!(obj instanceof THREE.Bone)) return;
                 const pose = idleBones[obj.name];
                 if (!pose) return;
-                // Convert Euler → Quaternion for the keyframe track
-                const euler = new THREE.Euler(pose.x, pose.y, pose.z, 'XYZ');
+                // ✅ FIX: Use ZYX rotation order (matches sign JSON data)
+                // Same order as animation tracks - ensures consistent bone positioning
+                const ROTATION_ORDER: THREE.EulerOrder = 'ZYX';
+                const euler = new THREE.Euler(pose.x, pose.y, pose.z, ROTATION_ORDER);
                 const q = new THREE.Quaternion().setFromEuler(euler);
                 idleTracks.push(
                     new THREE.QuaternionKeyframeTrack(
@@ -213,9 +248,13 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
                 const idleClip = new THREE.AnimationClip('idle', 9999, idleTracks);
                 const idleAction = mixer.clipAction(idleClip);
                 idleAction.setLoop(THREE.LoopRepeat, Infinity);
-                idleAction.weight = 1;
+                // ✅ CRITICAL FIX: Reduce idle weight to 0.3 instead of 1.0
+                // At weight=1.0, idle animation dominates and blocks all sign animations
+                // At weight=0.3, idle acts as background while sign animations override (weight=1.0)
+                // This allows visible sign language movements on top of subtle idle pose
+                idleAction.weight = 0.3;
                 idleAction.play();
-                console.log('[AvatarCanvas] Idle pose applied, tracks:', idleTracks.length);
+                console.log('[AvatarCanvas] Idle pose applied (weight: 0.3), tracks:', idleTracks.length);
             }
 
             mixerRef.current = mixer;
@@ -255,13 +294,13 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
 
 const styles = StyleSheet.create({
     container: {
-        height: 340,
+        // Taller canvas so the full signing zone (shoulders → hands) is visible
+        height: 440,
         borderRadius: 20,
         overflow: 'hidden',
         backgroundColor: '#0b1021',
-        borderWidth: 1,
-        borderColor: 'rgba(148, 163, 184, 0.25)',
-        marginBottom: 16,
+        // Border is now controlled by parent (DeafModeScreen avatarWrapper)
+        marginBottom: 0,
     },
     canvas: {
         flex: 1,

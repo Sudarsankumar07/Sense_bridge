@@ -1,25 +1,24 @@
 {
-  "sign": "help",
+  "sign": "sad",
   "fps": 30,
-  "duration": 1.0,
-  "notes": "ASL HELP: Right A-hand (closed fist) rests on left open palm at neutral space, lifts upward with smooth motion.",
+  "duration": 1.2,
+  "notes": "ASL SAD: Both hands move slowly downward from face to stomach. Slow, deliberate motion. Head tilts down, eyes look down, sad expression.",
   "handshape": {
-    "RightHand": "A-hand (closed fist with thumb out)",
-    "LeftHand": "5-hand (open palm, facing up)",
-    "description": "Right: Thumb and fingers curled. Left: All fingers extended, palm facing up"
+    "BothHands": "Open 5 or Index fingers on cheeks",
+    "description": "Hands can be open with fingers extended, or index fingers touching face/cheeks"
   },
   "frames": [
     {
       "time": 0.0,
-      "description": "Start: A-hand rests on open palm at waist level",
+      "description": "Start: Hands at face level, sad expression, head neutral",
       "bones": {
         "RightArm": {
-          "x": -0.1,
-          "y": -0.2,
-          "z": -0.9
+          "x": 0.1,
+          "y": 0.2,
+          "z": -0.5
         },
         "RightForeArm": {
-          "x": 0.7,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
@@ -29,52 +28,52 @@
           "z": 0.0
         },
         "RightHandIndex1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandIndex2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandIndex3": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandMiddle1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandMiddle2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandMiddle3": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandRing1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandRing2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandPinky1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandPinky2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
@@ -88,13 +87,28 @@
           "y": 0.0,
           "z": 0.0
         },
+        "Spine2": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Neck": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Head": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
         "LeftArm": {
-          "x": 0.15,
-          "y": -0.4,
-          "z": 0.8
+          "x": 0.1,
+          "y": -0.2,
+          "z": 0.5
         },
         "LeftForeArm": {
-          "x": -0.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
@@ -166,37 +180,118 @@
       }
     },
     {
-      "time": 0.5,
-      "description": "Middle: A-hand lifting upward",
+      "time": 0.4,
+      "description": "Moving: Hands slide down slowly, head begins tilting down",
       "bones": {
         "RightArm": {
-          "x": -0.5,
-          "y": -0.1,
-          "z": -0.7
+          "x": 0.3,
+          "y": 0.15,
+          "z": -0.4
         },
         "RightForeArm": {
-          "x": 0.9,
+          "x": -0.15,
           "y": 0.0,
           "z": 0.0
         },
         "RightHand": {
-          "x": 0.0,
+          "x": -0.1,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Spine2": {
+          "x": 0.06,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Neck": {
+          "x": 0.12,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Head": {
+          "x": 0.15,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "LeftArm": {
+          "x": 0.3,
+          "y": -0.15,
+          "z": 0.4
+        },
+        "LeftForeArm": {
+          "x": -0.15,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "LeftHand": {
+          "x": 0.1,
           "y": 0.0,
           "z": 0.0
         }
       }
     },
     {
-      "time": 1.0,
-      "description": "End: Return to rest position",
+      "time": 0.8,
+      "description": "Peak sad position: Hands at chest/stomach, head down",
       "bones": {
         "RightArm": {
-          "x": -0.1,
-          "y": -0.2,
-          "z": -0.9
+          "x": 0.5,
+          "y": 0.1,
+          "z": -0.3
         },
         "RightForeArm": {
-          "x": 0.7,
+          "x": -0.3,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "RightHand": {
+          "x": -0.2,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Spine2": {
+          "x": 0.1,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Neck": {
+          "x": 0.2,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Head": {
+          "x": 0.25,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "LeftArm": {
+          "x": 0.5,
+          "y": -0.1,
+          "z": 0.3
+        },
+        "LeftForeArm": {
+          "x": -0.3,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "LeftHand": {
+          "x": 0.2,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    },
+    {
+      "time": 1.2,
+      "description": "End: Return to neutral, head up",
+      "bones": {
+        "RightArm": {
+          "x": 0.1,
+          "y": 0.2,
+          "z": -0.5
+        },
+        "RightForeArm": {
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
@@ -206,52 +301,52 @@
           "z": 0.0
         },
         "RightHandIndex1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandIndex2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandIndex3": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandMiddle1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandMiddle2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandMiddle3": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandRing1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandRing2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandPinky1": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
         "RightHandPinky2": {
-          "x": 1.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
@@ -265,13 +360,28 @@
           "y": 0.0,
           "z": 0.0
         },
+        "Spine2": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Neck": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "Head": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
         "LeftArm": {
-          "x": 0.15,
-          "y": -0.4,
-          "z": 0.8
+          "x": 0.1,
+          "y": -0.2,
+          "z": 0.5
         },
         "LeftForeArm": {
-          "x": -0.2,
+          "x": 0.0,
           "y": 0.0,
           "z": 0.0
         },
