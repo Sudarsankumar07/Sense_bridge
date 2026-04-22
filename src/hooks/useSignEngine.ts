@@ -167,7 +167,8 @@ const toClip = (name: string, signData: SignClipData): THREE.AnimationClip | nul
     return new THREE.AnimationClip(name, signData.duration, tracks);
 };
 
-const normalizeWord = (word: string): string => {
+const normalizeWord = (word: string | undefined | null): string => {
+    if (!word) return '';
     const cleaned = word.trim().toLowerCase();
     if (!cleaned) {
         return '';
@@ -217,7 +218,8 @@ export const createSignEngine = (mixer: THREE.AnimationMixer) => {
         mixer.stopAllAction();
     };
 
-    const textToGloss = (text: string): string[] => {
+    const textToGloss = (text: string | undefined | null): string[] => {
+        if (!text) return [];
         return text
             .toLowerCase()
             .replace(/[^a-z\s]/g, ' ')

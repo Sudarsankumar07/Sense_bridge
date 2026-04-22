@@ -12,6 +12,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { listenForCommand } from '../services/voiceEngine';
 import { hapticSelection, hapticWarning, hapticSuccess } from '../services/haptics';
+import { safeNormalize, isNonEmpty } from '../utils/stringUtils';
 
 export type MicFABState = 'idle' | 'listening' | 'processing' | 'success' | 'error';
 
@@ -126,10 +127,12 @@ export const MicFAB: React.FC<MicFABProps> = ({
             // Small artificial delay so user sees "processing" state
             await new Promise(r => setTimeout(r, 300));
 
-            if (result.text) {
+            // Null-safe via safeNormalize — result.text is null when STT hears nothing
+            const transcript = safeNormalize(result.text);
+            if (isNonEmpty(transcript)) {
                 setMicState('success');
                 flashFeedback(true);
-                onCommandReceived(result.text);
+                onCommandReceived(transcript);
             } else {
                 setMicState('error');
                 flashFeedback(false);
@@ -150,12 +153,60 @@ export const MicFAB: React.FC<MicFABProps> = ({
         }
     }, [micState, disabled, buttonScale, listenTimeoutMs, flashFeedback, onCommandReceived]);
 
+    /**
+     * Programmatic trigger (from volume key combo).
+     * Bypasses the `disabled` guard so blind users can always activate the mic
+     * via hardware buttons, even when the FAB is visually disabled.
+     */
+    const handleVolumeTrigger = useCallback(async () => {
+        if (micState !== 'idle') return; // still respect 'not already recording'
+
+        Animated.spring(buttonScale, {
+            toValue: 0.92,
+            useNativeDriver: true,
+            ...theme.animations.spring.stiff,
+        }).start();
+
+        hapticSelection();
+        setMicState('listening');
+
+        try {
+            const result = await listenForCommand(listenTimeoutMs);
+
+            setMicState('processing');
+            await new Promise(r => setTimeout(r, 300));
+
+            const transcript = safeNormalize(result.text);
+            if (isNonEmpty(transcript)) {
+                setMicState('success');
+                flashFeedback(true);
+                onCommandReceived(transcript);
+            } else {
+                setMicState('error');
+                flashFeedback(false);
+            }
+        } catch {
+            setMicState('error');
+            flashFeedback(false);
+        } finally {
+            setTimeout(() => {
+                setMicState('idle');
+                Animated.spring(buttonScale, {
+                    toValue: 1,
+                    useNativeDriver: true,
+                    ...theme.animations.spring.gentle,
+                }).start();
+            }, 700);
+        }
+    }, [micState, buttonScale, listenTimeoutMs, flashFeedback, onCommandReceived]);
+
     // ── Expose trigger to parent (for volume key combo) ───────────────────
     useEffect(() => {
         if (triggerRef) {
-            triggerRef.current = handleMicPress;
+            // Volume key combo uses handleVolumeTrigger (ignores disabled)
+            triggerRef.current = handleVolumeTrigger;
         }
-    }, [triggerRef, handleMicPress]);
+    }, [triggerRef, handleVolumeTrigger]);
 
     // ── Derived colours ───────────────────────────────────────────────────
     const getButtonColor = (): string => {

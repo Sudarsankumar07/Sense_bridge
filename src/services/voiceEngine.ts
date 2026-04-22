@@ -1,6 +1,6 @@
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import config from '../constants/config';
 import { GOOGLE_CLOUD_VISION_API_KEY } from '@env';
@@ -69,6 +69,21 @@ const MIN_CONFIDENCE = 0.25;
  * On web, uses the browser's Web Speech API instead (no file system needed).
  */
 let isRecording = false; // global mutex — only one recording at a time
+let recordingMutexTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Force-reset the recording mutex.
+ * Call this from the volume-button trigger to clear any stale lock
+ * left behind by an interrupted recording session.
+ */
+export const forceResetRecordingState = () => {
+    if (recordingMutexTimer) {
+        clearTimeout(recordingMutexTimer);
+        recordingMutexTimer = null;
+    }
+    isRecording = false;
+    console.log('[VoiceEngine] 🔄 Recording mutex force-reset');
+};
 
 /**
  * Web-specific: use the browser's SpeechRecognition API.
@@ -205,8 +220,10 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
         }
 
         // Read audio file as base64
+        // Use literal 'base64' string — avoids FileSystem.EncodingType enum issues
+        // across expo-file-system version upgrades.
         const base64Audio = await FileSystem.readAsStringAsync(uri, {
-            encoding: 'base64',
+            encoding: FileSystem.EncodingType?.Base64 ?? 'base64' as any,
         });
 
         // Send to Google Cloud Speech-to-Text API
@@ -290,14 +307,24 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
 export const listenForCommand = async (timeoutMs = 4000): Promise<VoiceCommandResult> => {
     // Prevent concurrent recordings
     if (isRecording) {
+        console.warn('[VoiceEngine] Already recording — ignoring duplicate trigger');
         return { text: null, confidence: 0, isFinal: true };
     }
     isRecording = true;
 
+    // Safety timeout: if something crashes mid-recording, auto-unlock after timeoutMs + 10s
+    if (recordingMutexTimer) clearTimeout(recordingMutexTimer);
+    recordingMutexTimer = setTimeout(() => {
+        if (isRecording) {
+            console.warn('[VoiceEngine] ⚠️ Safety timeout hit — force-unlocking recording mutex');
+            isRecording = false;
+        }
+    }, timeoutMs + 10000);
+
     // Stop any active TTS to prevent echo pickup
     Speech.stop();
-    // Small delay for audio to dissipate
-    await new Promise(r => setTimeout(r, 400));
+    // Small delay for audio to dissipate before mic opens
+    await new Promise(r => setTimeout(r, 500));
 
     try {
         if (Platform.OS === 'web') {
@@ -306,5 +333,9 @@ export const listenForCommand = async (timeoutMs = 4000): Promise<VoiceCommandRe
         return await listenForCommandNative(timeoutMs);
     } finally {
         isRecording = false;
+        if (recordingMutexTimer) {
+            clearTimeout(recordingMutexTimer);
+            recordingMutexTimer = null;
+        }
     }
 };

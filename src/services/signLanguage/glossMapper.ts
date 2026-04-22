@@ -1,4 +1,5 @@
 import { SignGlossResult, SignGlossToken } from '../../types';
+import { safeNormalize } from '../../utils/stringUtils';
 
 const STOP_WORDS = new Set([
     'a',
@@ -32,25 +33,18 @@ const NORMALIZATION_MAP: Record<string, string> = {
     school: 'SCHOOL',
 };
 
-const normalizeWord = (word: string): string => {
-    const trimmed = word.trim().toLowerCase();
-    if (!trimmed) {
-        return '';
-    }
-
-    if (NORMALIZATION_MAP[trimmed]) {
-        return NORMALIZATION_MAP[trimmed];
-    }
-
+const normalizeWord = (word: string | undefined | null): string => {
+    // safeNormalize handles null/undefined; protects against split() producing empty strings
+    const trimmed = safeNormalize(word);
+    if (!trimmed) return '';
+    if (NORMALIZATION_MAP[trimmed]) return NORMALIZATION_MAP[trimmed];
     return trimmed.toUpperCase();
 };
 
-const buildToken = (rawWord: string): SignGlossToken | null => {
-    const normalized = rawWord.toLowerCase().trim();
-    if (!normalized || STOP_WORDS.has(normalized)) {
-        return null;
-    }
-
+const buildToken = (rawWord: string | undefined | null): SignGlossToken | null => {
+    // Null-safe: .map() can produce undefined elements in edge cases
+    const normalized = safeNormalize(rawWord);
+    if (!normalized || STOP_WORDS.has(normalized)) return null;
     return {
         token: normalizeWord(normalized),
         confidence: 0.82,
@@ -58,9 +52,12 @@ const buildToken = (rawWord: string): SignGlossToken | null => {
 };
 
 export const mapTranscriptToGloss = (
-    text: string,
+    text: string | undefined | null,
     language: 'ISL' | 'ASL' = 'ISL'
 ): SignGlossResult => {
+    if (!text) {
+        return { originalText: '', language, tokens: [] };
+    }
     const cleaned = text
         .replace(/[^a-zA-Z0-9\s]/g, ' ')
         .replace(/\s+/g, ' ')

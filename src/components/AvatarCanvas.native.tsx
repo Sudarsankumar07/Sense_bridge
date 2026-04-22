@@ -1,9 +1,9 @@
-import React, { useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useRef, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, PanResponder } from 'react-native';
 import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import { Asset } from 'expo-asset';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
 
@@ -14,8 +14,87 @@ interface AvatarCanvasProps {
 }
 
 export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, onBonesDetected }) => {
-    const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-    const clockRef = useRef(new THREE.Clock());
+    const mixerRef   = useRef<THREE.AnimationMixer | null>(null);
+    const clockRef   = useRef(new THREE.Clock());
+
+    // ── Orbit camera state (updated by PanResponder, read every frame) ────
+    const orbitTheta  = useRef(0);              // horizontal angle (0 = front)
+    const orbitPhi    = useRef(Math.PI / 2);   // vertical angle   (PI/2 = level)
+    const orbitRadius = useRef(1.7);            // distance from target
+    const orbitTarget = useRef(new THREE.Vector3(0, 1.0, 0)); // look-at point
+
+    // Touch tracking refs
+    const prevTouch1  = useRef<{ x: number; y: number } | null>(null);
+    const prevPinch   = useRef<number | null>(null);
+
+    // ── Build PanResponder ─────────────────────────────────────────────────
+    const panResponder = useMemo(() => PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        // Let the gesture system know we want control
+        onMoveShouldSetPanResponder: (_, g) =>
+            Math.abs(g.dx) > 2 || Math.abs(g.dy) > 2,
+        // Prevent the parent ScrollView from stealing the gesture
+        onMoveShouldSetPanResponderCapture: (_, g) =>
+            Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,
+
+        onPanResponderGrant: (e) => {
+            const touches = e.nativeEvent.touches;
+            if (touches.length >= 2) {
+                const dx = touches[0].pageX - touches[1].pageX;
+                const dy = touches[0].pageY - touches[1].pageY;
+                prevPinch.current  = Math.sqrt(dx * dx + dy * dy);
+                prevTouch1.current = null;
+            } else {
+                prevTouch1.current = { x: touches[0].pageX, y: touches[0].pageY };
+                prevPinch.current  = null;
+            }
+        },
+
+        onPanResponderMove: (e) => {
+            const touches = e.nativeEvent.touches;
+
+            if (touches.length >= 2) {
+                // ── Pinch to zoom ──────────────────────────────────────────
+                const dx   = touches[0].pageX - touches[1].pageX;
+                const dy   = touches[0].pageY - touches[1].pageY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (prevPinch.current !== null) {
+                    const delta = prevPinch.current - dist;   // + = pinch in = zoom out
+                    orbitRadius.current = Math.max(0.6, Math.min(6.0,
+                        orbitRadius.current + delta * 0.006
+                    ));
+                }
+                prevPinch.current  = dist;
+                prevTouch1.current = null;
+
+            } else if (touches.length === 1 && prevTouch1.current) {
+                // ── Single finger drag to orbit ────────────────────────────
+                const dx = touches[0].pageX - prevTouch1.current.x;
+                const dy = touches[0].pageY - prevTouch1.current.y;
+
+                orbitTheta.current -= dx * 0.009;   // left/right → rotate Y
+                orbitPhi.current    = Math.max(
+                    0.08,
+                    Math.min(Math.PI - 0.08,
+                        orbitPhi.current - dy * 0.009  // up/down → elevate
+                    )
+                );
+
+                prevTouch1.current = { x: touches[0].pageX, y: touches[0].pageY };
+                prevPinch.current  = null;
+            }
+        },
+
+        onPanResponderRelease: () => {
+            prevTouch1.current = null;
+            prevPinch.current  = null;
+        },
+        onPanResponderTerminate: () => {
+            prevTouch1.current = null;
+            prevPinch.current  = null;
+        },
+    }), []);
 
     const onContextCreate = async (gl: any) => {
         // ── Suppress noisy EXGL warnings about unsupported pixelStorei params ──
@@ -98,34 +177,58 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             // eyeHeight targets ~65% up the model (mid-chest / shoulder area).
             // camDist is kept shorter (1.7) combined with narrow FOV (42°)
             // to fill the canvas with just the signing zone.
-            const eyeHeight  = scaledSize.y * 0.65;  // shoulder / upper-chest
-            const camDist    = 1.7;                   // closer than before
+            const eyeHeight = scaledSize.y * 0.65;  // shoulder / upper-chest
+            const camDist = 1.7;                   // closer than before
             camera.fov = 42;                          // narrow FOV for zoom
-            camera.position.set(0, eyeHeight, camDist);
-            camera.lookAt(0, eyeHeight * 0.82, 0);   // focus slightly below eye
             camera.near = 0.01;
             camera.far  = 1000;
             camera.updateProjectionMatrix();
-            console.log('[AvatarCanvas] Camera set — eye:', eyeHeight.toFixed(2), 'dist:', camDist, 'fov: 42');
+
+            // ── Seed orbit state from computed camera position ────────────────
+            //  target  = the look-at point (mid-chest)
+            //  radius  = distance from target to camera
+            //  phi     = vertical angle from world-up
+            //  theta   = horizontal angle (0 = front)
+            const lookAtY = eyeHeight * 0.82;
+            orbitTarget.current.set(0, lookAtY, 0);
+            const offsetY = eyeHeight - lookAtY;     // camera above target
+            orbitRadius.current = Math.sqrt(offsetY * offsetY + camDist * camDist);
+            orbitPhi.current    = Math.acos(
+                Math.max(-1, Math.min(1, offsetY / orbitRadius.current))
+            );
+            orbitTheta.current  = 0;   // facing front
+            console.log('[AvatarCanvas] Orbit seeded — r:', orbitRadius.current.toFixed(2),
+                'phi:', orbitPhi.current.toFixed(2));
         };
 
         try {
             console.log('[AvatarCanvas] Loading GLB asset...');
             const asset = Asset.fromModule(require('../../assets/models/avatar.glb'));
-            await asset.downloadAsync();
 
-            // Use asset.uri — Metro serves assets over HTTP during development.
-            // This is always a valid HTTP URL that fetch() handles natively.
-            // Do NOT use asset.localUri — file:// paths break on Android Expo Go.
-            const assetUri = asset.uri;
+            // ── Resilient asset URI resolution ────────────────────────────────
+            // downloadAsync() can fail on dev-client builds when expo-asset and
+            // expo-modules-core versions are mismatched (NoSuchMethodError on
+            // getFilePermission). We therefore try it first, and if it throws,
+            // fall back to asset.uri which Metro/EAS already serves over HTTP.
+            let assetUri: string | null | undefined = null;
+            try {
+                await asset.downloadAsync();
+                assetUri = asset.localUri ?? asset.uri;
+                console.log('[AvatarCanvas] downloadAsync succeeded, uri:', assetUri?.substring(0, 80));
+            } catch (downloadErr) {
+                console.warn('[AvatarCanvas] downloadAsync failed, using raw uri fallback:', downloadErr);
+                assetUri = asset.uri;
+            }
+
             if (!assetUri) {
                 throw new Error('Asset URI is empty — asset failed to resolve');
             }
             console.log('[AvatarCanvas] Fetching GLB from:', assetUri.substring(0, 80));
 
             // ─────────────────────────────────────────────────────────────────
-            // Use fetch() + arrayBuffer() — works on all platforms in Expo Go.
-            // No FileSystem, no native module dependency, no Draco CDN needed.
+            // Use fetch() + arrayBuffer() — works on all platforms.
+            // Metro dev server and EAS both serve the GLB over HTTP, so
+            // no FileSystem permission is needed.
             // ─────────────────────────────────────────────────────────────────
             const response = await fetch(assetUri);
             if (!response.ok) {
@@ -170,9 +273,11 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             console.log('[AvatarCanvas] Finger Bones Count:', skeletonStats.fingerBones);
             console.log('[AvatarCanvas] =====================================');
 
-            const reportPath = `${FileSystem.documentDirectory ?? ''}sensebridge-avatar-bones.json`;
+            // Write bone diagnostic report (best-effort — skip silently if FS unavailable)
             try {
-                if (FileSystem.documentDirectory) {
+                const docDir = FileSystem.documentDirectory;
+                if (docDir) {
+                    const reportPath = `${docDir}sensebridge-avatar-bones.json`;
                     await FileSystem.writeAsStringAsync(
                         reportPath,
                         JSON.stringify(
@@ -188,6 +293,8 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
                         { encoding: FileSystem.EncodingType.UTF8 }
                     );
                     onBonesDetected?.(uniqueBones, reportPath);
+                } else {
+                    onBonesDetected?.(uniqueBones, '');
                 }
             } catch {
                 onBonesDetected?.(uniqueBones, '');
@@ -211,18 +318,18 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             // These Euler angles position arms naturally for sign language on top
             const idleBones: Record<string, { x: number; y: number; z: number }> = {
                 // Right arm down to side
-                mixamorig_RightShoulder: { x:  0.0,  y:  0.0,  z:  0.0  },
-                mixamorig_RightArm:     { x:  0.0,  y:  0.0,  z: -0.5  },  // Arm down
-                mixamorig_RightForeArm: { x:  0.0,  y:  0.0,  z:  0.0  },  // Forearm neutral
-                mixamorig_RightHand:    { x:  0.0,  y:  0.0,  z:  0.0  },  // Hand neutral
+                mixamorig_RightShoulder: { x: 0.0, y: 0.0, z: 0.0 },
+                mixamorig_RightArm: { x: 0.0, y: 0.0, z: -0.5 },  // Arm down
+                mixamorig_RightForeArm: { x: 0.0, y: 0.0, z: 0.0 },  // Forearm neutral
+                mixamorig_RightHand: { x: 0.0, y: 0.0, z: 0.0 },  // Hand neutral
                 // Left arm down to side
-                mixamorig_LeftShoulder: { x:  0.0,  y:  0.0,  z:  0.0  },
-                mixamorig_LeftArm:      { x:  0.0,  y:  0.0,  z:  0.5   },  // Arm down
-                mixamorig_LeftForeArm:  { x:  0.0,  y:  0.0,  z:  0.0  },  // Forearm neutral
-                mixamorig_LeftHand:     { x:  0.0,  y:  0.0,  z:  0.0  },  // Hand neutral
+                mixamorig_LeftShoulder: { x: 0.0, y: 0.0, z: 0.0 },
+                mixamorig_LeftArm: { x: 0.0, y: 0.0, z: 0.5 },  // Arm down
+                mixamorig_LeftForeArm: { x: 0.0, y: 0.0, z: 0.0 },  // Forearm neutral
+                mixamorig_LeftHand: { x: 0.0, y: 0.0, z: 0.0 },  // Hand neutral
                 // Spine slight curve
-                mixamorig_Spine:        { x:  0.0,  y:  0.0,  z:  0.0  },
-                mixamorig_Spine1:       { x:  0.0,  y:  0.0,  z:  0.0  },
+                mixamorig_Spine: { x: 0.0, y: 0.0, z: 0.0 },
+                mixamorig_Spine1: { x: 0.0, y: 0.0, z: 0.0 },
             };
 
             const idleTracks: THREE.KeyframeTrack[] = [];
@@ -275,6 +382,20 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             requestAnimationFrame(animate);
             const delta = clockRef.current.getDelta();
             mixerRef.current?.update(delta);
+
+            // ── Recompute camera position from orbit state every frame ──────
+            const tgt = orbitTarget.current;
+            const r   = orbitRadius.current;
+            const phi = orbitPhi.current;
+            const th  = orbitTheta.current;
+            camera.position.set(
+                tgt.x + r * Math.sin(phi) * Math.sin(th),
+                tgt.y + r * Math.cos(phi),
+                tgt.z + r * Math.sin(phi) * Math.cos(th),
+            );
+            camera.lookAt(tgt);
+            // ───────────────────────────────────────────────────────────────
+
             renderer.render(scene, camera);
             gl.endFrameEXP();
         };
@@ -283,10 +404,17 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
     };
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} {...panResponder.panHandlers}>
             <GLView style={styles.canvas} onContextCreate={onContextCreate} />
+
+            {/* "3D Sign Avatar" label */}
             <View style={styles.labelPill}>
                 <Text style={styles.labelText}>3D Sign Avatar</Text>
+            </View>
+
+            {/* Gesture hint */}
+            <View style={styles.hintPill}>
+                <Text style={styles.hintText}>⟲ Drag to rotate  •  Pinch to zoom</Text>
             </View>
         </View>
     );
@@ -294,12 +422,10 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
 
 const styles = StyleSheet.create({
     container: {
-        // Taller canvas so the full signing zone (shoulders → hands) is visible
         height: 440,
         borderRadius: 20,
         overflow: 'hidden',
         backgroundColor: '#0b1021',
-        // Border is now controlled by parent (DeafModeScreen avatarWrapper)
         marginBottom: 0,
     },
     canvas: {
@@ -321,4 +447,22 @@ const styles = StyleSheet.create({
         letterSpacing: 0.4,
         textTransform: 'uppercase',
     },
+    hintPill: {
+        position: 'absolute',
+        bottom: 10,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(15, 23, 42, 0.70)',
+        borderRadius: 999,
+        paddingHorizontal: 14,
+        paddingVertical: 5,
+        borderWidth: 1,
+        borderColor: 'rgba(61,214,255,0.2)',
+    },
+    hintText: {
+        color: 'rgba(61,214,255,0.8)',
+        fontSize: 11,
+        fontWeight: '500',
+        letterSpacing: 0.3,
+    },
 });
+

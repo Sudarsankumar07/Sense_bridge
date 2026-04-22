@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { listenForCommand, speakAndWait } from '../services/voiceEngine';
 import config from '../constants/config';
+import { safeNormalize, isNonEmpty } from '../utils/stringUtils';
 
 type CommandMap = Record<string, () => void>;
 
@@ -60,8 +61,9 @@ export const useVoiceCommands = ({
     }, [intro]);
 
     // Match recognized text against command keywords
-    const matchCommand = useCallback((text: string): (() => void) | null => {
-        const normalized = text.toLowerCase();
+    const matchCommand = useCallback((text: string | null | undefined): (() => void) | null => {
+        const normalized = safeNormalize(text);
+        if (!normalized) return null;
 
         for (const [key, handler] of Object.entries(commandsRef.current)) {
             const configKey = key.toUpperCase() as keyof typeof config.VOICE_COMMANDS;
@@ -83,8 +85,9 @@ export const useVoiceCommands = ({
     const triggerListen = useCallback(async (): Promise<boolean> => {
         const result = await listenForCommand(listenTimeoutMs);
 
-        if (result.text) {
-            const handler = matchCommand(result.text);
+        const transcript = safeNormalize(result.text);
+        if (isNonEmpty(transcript)) {
+            const handler = matchCommand(transcript);
             if (handler) {
                 handler();
                 return true;

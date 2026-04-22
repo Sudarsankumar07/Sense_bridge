@@ -11,6 +11,7 @@ import { ModeCard, VoiceButton } from '../components';
 import { listenForCommand, speakAndWait, speak } from '../services/voiceEngine';
 import { hapticSelection } from '../services/haptics';
 import { setLastMode } from '../services/storage';
+import { safeNormalize } from '../utils/stringUtils';
 
 type ModeSelectionNavigationProp = StackNavigationProp<RootStackParamList, 'ModeSelection'>;
 
@@ -30,8 +31,9 @@ export const ModeSelectionScreen: React.FC = () => {
         navigation.navigate(mode === AppMode.BLIND ? 'BlindMode' : mode === AppMode.SIGN ? 'SignMode' : 'DeafMode');
     }, [navigation]);
 
-    const matchVoiceCommand = useCallback((text: string): AppMode | null => {
-        const normalized = text.toLowerCase();
+    const matchVoiceCommand = useCallback((text: string | null | undefined): AppMode | null => {
+        const normalized = safeNormalize(text);
+        if (!normalized) return null;
         if (config.VOICE_COMMANDS.BLIND_MODE.some(cmd => normalized.includes(cmd))) {
             return AppMode.BLIND;
         }

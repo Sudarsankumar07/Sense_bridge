@@ -9,17 +9,29 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "CLOUD_PROVIDER": "google",
+        "ROBOFLOW_CURRENCY_MODEL": "indian-currency"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "CLOUD_PROVIDER": "google",
+        "ROBOFLOW_CURRENCY_MODEL": "indian-currency"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "CLOUD_PROVIDER": "google",
+        "ROBOFLOW_CURRENCY_MODEL": "indian-currency"
       }
     }
   }

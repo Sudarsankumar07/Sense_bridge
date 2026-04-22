@@ -19,6 +19,7 @@ import { speak } from '../services/voiceEngine';
 import { useVoiceCommands } from '../hooks/useVoiceCommands';
 import { useVolumeButtonTrigger } from '../hooks/useVolumeButtonTrigger';
 import { CloudError, RootStackParamList } from '../types';
+import { safeNormalize } from '../utils/stringUtils';
 
 export const BlindModeScreen: React.FC = () => {
     const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'BlindMode'>>();
@@ -206,10 +207,8 @@ export const BlindModeScreen: React.FC = () => {
                 triggerRef={micTriggerRef}
                 listenTimeoutMs={5000}
                 onCommandReceived={(text) => {
-                    // useVoiceCommands.triggerListen() already dispatches internally,
-                    // but MicFAB calls onCommandReceived AFTER recognition.
-                    // We re-match here in case MicFAB is used standalone.
-                    const normalized = text.toLowerCase();
+                    const normalized = safeNormalize(text);
+                    if (!normalized) return;
                     if (normalized.includes('obstacle')) toggleObstacle();
                     else if (normalized.includes('currency')) toggleCurrency();
                     else if (normalized.includes('navigate') || normalized.includes('navigation')) {

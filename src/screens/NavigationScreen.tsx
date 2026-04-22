@@ -27,6 +27,7 @@ import {
 import { NavigationMap } from '../components/NavigationMap';
 import { MicFAB } from '../components/MicFAB';
 import { useVolumeButtonTrigger } from '../hooks/useVolumeButtonTrigger';
+import { safeNormalize } from '../utils/stringUtils';
 
 type NavState = 'idle' | 'asking' | 'searching' | 'navigating' | 'arrived' | 'error';
 
@@ -276,7 +277,9 @@ export const NavigationScreen: React.FC = () => {
     // ── Handle in-navigation voice commands (stop / repeat / back) ──
     const handleNavCommand = useCallback(
         async (text: string) => {
-            const normalized = text.toLowerCase();
+            // Null-safe via safeNormalize — STT can deliver null/undefined
+            const normalized = safeNormalize(text);
+            if (!normalized) return;
 
             // If we're waiting for destination input, resolve the promise
             if (pendingMicResolve.current) {
