@@ -1,18 +1,47 @@
 {
   "sign": "alphabet_c",
   "fps": 30,
-  "duration": 0.4,
+  "duration": 0.5,
+  "notes": "ASL C: All fingers curve forming a C-shape, thumb curves to match.",
   "frames": [
     {
       "time": 0.0,
       "bones": {
-        "RightHand": { "x": 0.0, "y": 0.0, "z": 0.0 }
+        "RightArm":         { "x": -0.3, "y": 0.0,  "z": -0.7 },
+        "RightForeArm":     { "x": 1.1,  "y": 0.0,  "z": 0.0  },
+        "RightHand":        { "x": 0.0,  "y": 0.0,  "z": 0.0  },
+        "RightHandIndex1":  { "x": 0.5,  "y": 0.0,  "z": 0.0  },
+        "RightHandIndex2":  { "x": 0.5,  "y": 0.0,  "z": 0.0  },
+        "RightHandIndex3":  { "x": 0.4,  "y": 0.0,  "z": 0.0  },
+        "RightHandMiddle1": { "x": 0.55, "y": 0.0,  "z": 0.0  },
+        "RightHandMiddle2": { "x": 0.5,  "y": 0.0,  "z": 0.0  },
+        "RightHandMiddle3": { "x": 0.4,  "y": 0.0,  "z": 0.0  },
+        "RightHandRing1":   { "x": 0.55, "y": 0.0,  "z": 0.0  },
+        "RightHandRing2":   { "x": 0.5,  "y": 0.0,  "z": 0.0  },
+        "RightHandPinky1":  { "x": 0.5,  "y": 0.0,  "z": 0.0  },
+        "RightHandPinky2":  { "x": 0.4,  "y": 0.0,  "z": 0.0  },
+        "RightHandThumb1":  { "x": 0.0,  "y": 0.5,  "z": 0.0  },
+        "RightHandThumb2":  { "x": 0.3,  "y": 0.0,  "z": 0.0  }
       }
     },
     {
-      "time": 0.4,
+      "time": 0.5,
       "bones": {
-        "RightHand": { "x": 0.0, "y": 0.0, "z": 0.0 }
+        "RightArm":         { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightForeArm":     { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHand":        { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandIndex1":  { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandIndex2":  { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandIndex3":  { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandMiddle1": { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandMiddle2": { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandMiddle3": { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandRing1":   { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandRing2":   { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandPinky1":  { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandPinky2":  { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandThumb1":  { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "RightHandThumb2":  { "x": 0.0, "y": 0.0, "z": 0.0 }
       }
     }
   ]
