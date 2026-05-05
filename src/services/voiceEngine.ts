@@ -3,7 +3,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import config from '../constants/config';
-import { GOOGLE_CLOUD_VISION_API_KEY } from '@env';
+import { GEMINI_API_KEY } from '@env';
 
 export type VoiceCommandResult = {
     text: string | null;
@@ -175,12 +175,12 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
         recording = new Audio.Recording();
         await recording.prepareToRecordAsync({
             android: {
-                extension: '.3gp',
-                outputFormat: Audio.AndroidOutputFormat.AMR_WB,
-                audioEncoder: Audio.AndroidAudioEncoder.AMR_WB,
+                extension: '.m4a',
+                outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+                audioEncoder: Audio.AndroidAudioEncoder.AAC,
                 sampleRate: 16000,
                 numberOfChannels: 1,
-                bitRate: 23850,
+                bitRate: 128000,
             },
             ios: {
                 extension: '.wav',
@@ -226,61 +226,61 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
             encoding: FileSystem.EncodingType?.Base64 ?? 'base64' as any,
         });
 
-        // Send to Google Cloud Speech-to-Text API
-        const apiKey = GOOGLE_CLOUD_VISION_API_KEY;
-        if (!apiKey || apiKey === 'your_google_cloud_vision_api_key_here') {
-            console.warn('[VoiceEngine] Google Cloud API key not configured');
+        // Send to Gemini 1.5 Flash for transcription
+        const apiKey = GEMINI_API_KEY;
+        if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+            console.warn('[VoiceEngine] Gemini API key not configured');
             return { text: null, confidence: 0, isFinal: true };
         }
 
+        const mimeType = Platform.OS === 'android' ? 'audio/mp4' : 'audio/wav';
+
+        const requestBody = {
+            contents: [
+                {
+                    parts: [
+                        { text: "Transcribe this short voice command. Reply with ONLY the exact words spoken, no quotes, no punctuation. If there is no clear speech or it is just background noise, reply with exactly: null" },
+                        {
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64Audio,
+                            },
+                        },
+                    ],
+                },
+            ],
+            generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 64,
+            },
+        };
+
         const response = await fetch(
-            `https://speech.googleapis.com/v1/speech:recognize?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    config: {
-                        encoding: Platform.OS === 'android' ? 'AMR_WB' : 'LINEAR16',
-                        sampleRateHertz: 16000,
-                        languageCode: currentLanguage,
-                        maxAlternatives: 1,
-                    },
-                    audio: {
-                        content: base64Audio,
-                    },
-                }),
+                body: JSON.stringify(requestBody),
             }
         );
 
         const data = await response.json();
 
-        console.log('[VoiceEngine] API response:', JSON.stringify(data, null, 2));
-
-        if (data.error) {
-            console.error(`[VoiceEngine] API error: ${data.error.message}`);
+        if (!response.ok || data.error) {
+            console.error(`[VoiceEngine] API error: ${data.error?.message || response.statusText}`);
             return { text: null, confidence: 0, isFinal: true };
         }
 
-        if (data.results && data.results.length > 0) {
-            const alternatives = data.results[0]?.alternatives;
-            if (alternatives && alternatives.length > 0) {
-                const best = alternatives[0];
-                const transcript = best.transcript;
-                const confidence = best.confidence ?? 0.9;
-                if (transcript && transcript !== 'undefined') {
-                    console.log(`[VoiceEngine] Recognized: "${transcript}" (confidence: ${confidence})`);
-                    // Reject low-confidence results (likely echo or noise)
-                    if (confidence < MIN_CONFIDENCE) {
-                        console.log('[VoiceEngine] Rejected — below confidence threshold');
-                        return { text: null, confidence: 0, isFinal: true };
-                    }
-                    return {
-                        text: transcript,
-                        confidence,
-                        isFinal: true,
-                    };
-                }
-            }
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const transcript = rawText.replace(/^["']|["']$/g, '');
+
+        if (transcript && transcript.toLowerCase() !== 'null') {
+            console.log(`[VoiceEngine] Recognized: "${transcript}"`);
+            return {
+                text: transcript,
+                confidence: 0.9, // Gemini doesn't provide confidence, assume high if text is returned
+                isFinal: true,
+            };
         }
 
         console.log('[VoiceEngine] No speech detected');

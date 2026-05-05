@@ -108,7 +108,6 @@ export const ModeSelectionScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="light" />
             <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
                 <View style={styles.heroGlow} />
                 <Text style={styles.eyebrow}>SenseBridge</Text>

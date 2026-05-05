@@ -76,7 +76,7 @@ export const DeafModeScreen: React.FC = () => {
 
     const handleSign = useCallback(async () => {
         const engine = signEngineRef.current;
-        if (!engine || !inputText.trim()) return;
+        if (!engine || !inputText) return;
 
         // ── Step 1: Scroll to top so avatar is fully visible ──
         scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -86,7 +86,7 @@ export const DeafModeScreen: React.FC = () => {
 
         hapticSuccess();
         setIsSigning(true);
-        setLastSignedText(inputText.trim());
+        setLastSignedText(inputText);
         startGlow();
 
         try {
@@ -101,7 +101,7 @@ export const DeafModeScreen: React.FC = () => {
     }, [inputText, glowAnim]);
 
     const isReadyToSign =
-        avatarStatus === 'ready' && !!signEngineRef.current && !!inputText.trim();
+        avatarStatus === 'ready' && !!signEngineRef.current && !!inputText;
 
     const borderColor = glowAnim.interpolate({
         inputRange: [0, 1],
@@ -126,7 +126,6 @@ export const DeafModeScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="light" />
 
             {/* ── Compact Header ── */}
             <LinearGradient colors={theme.gradients.hero} style={styles.header}>

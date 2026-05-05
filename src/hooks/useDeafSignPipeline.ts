@@ -50,7 +50,7 @@ export const useDeafSignPipeline = ({ onBack }: UseDeafSignPipelineOptions): Dea
 
                     setIsListening(false);
 
-                    const text = (result.text || '').trim();
+                    const text = (result.text || '');
                     if (!text) {
                         continue;
                     }

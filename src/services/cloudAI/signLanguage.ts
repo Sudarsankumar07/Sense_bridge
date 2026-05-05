@@ -1,19 +1,17 @@
 import { SignDetection } from '../../types';
+import { recognizeISLSign, ISLDetection } from './signLanguage.gemini';
 
-const SIGNS = [
-    { sign: 'hello', text: 'Hello' },
-    { sign: 'thank_you', text: 'Thank you' },
-    { sign: 'help', text: 'I need help' },
-    { sign: 'yes', text: 'Yes' },
-    { sign: 'no', text: 'No' },
-];
+/**
+ * ISL Sign Language Recognition Service
+ *
+ * Replaced the random mock with real Gemini Vision ISL detection.
+ * Accepts a base64 camera frame and returns the recognized ISL sign.
+ *
+ * The SignModeScreen calls this every ~2.5 seconds with a captured frame.
+ */
 
-export const recognizeSign = async (): Promise<SignDetection> => {
-    const random = SIGNS[Math.floor(Math.random() * SIGNS.length)];
+export type { ISLDetection };
 
-    return {
-        sign: random.sign,
-        text: random.text,
-        confidence: 0.86 + Math.random() * 0.1,
-    };
+export const recognizeSign = async (imageBase64: string): Promise<ISLDetection> => {
+    return recognizeISLSign(imageBase64);
 };

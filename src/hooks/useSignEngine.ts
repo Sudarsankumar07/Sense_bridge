@@ -20,24 +20,24 @@ type SignClipData = {
 
 const CORE_SIGNS: Record<string, SignClipData> = {
     // Original core signs
-    hello:     require('../../assets/signs/hello.json'),
-    yes:       require('../../assets/signs/yes.json'),
-    no:        require('../../assets/signs/no.json'),
-    thankyou:  require('../../assets/signs/thankyou.json'),
-    sorry:     require('../../assets/signs/sorry.json'),
-    please:    require('../../assets/signs/please.json'),
-    iloveyou:  require('../../assets/signs/iloveyou.json'),
-    good:      require('../../assets/signs/good.json'),
-    help:      require('../../assets/signs/help.json'),
+    hello: require('../../assets/signs/hello.json'),
+    yes: require('../../assets/signs/yes.json'),
+    no: require('../../assets/signs/no.json'),
+    thankyou: require('../../assets/signs/thankyou.json'),
+    sorry: require('../../assets/signs/sorry.json'),
+    please: require('../../assets/signs/please.json'),
+    iloveyou: require('../../assets/signs/iloveyou.json'),
+    good: require('../../assets/signs/good.json'),
+    help: require('../../assets/signs/help.json'),
     // ✅ NEW: Emotional expressions
-    angry:     require('../../assets/signs/angry.json'),
-    happy:     require('../../assets/signs/happy.json'),
-    sad:       require('../../assets/signs/sad.json'),
+    angry: require('../../assets/signs/angry.json'),
+    happy: require('../../assets/signs/happy.json'),
+    sad: require('../../assets/signs/sad.json'),
     // ✅ NEW: Practical needs
-    hungry:    require('../../assets/signs/hungry.json'),
-    water:     require('../../assets/signs/water.json'),
-    bathroom:  require('../../assets/signs/bathroom.json'),
-    tired:     require('../../assets/signs/tired.json'),
+    hungry: require('../../assets/signs/hungry.json'),
+    water: require('../../assets/signs/water.json'),
+    bathroom: require('../../assets/signs/bathroom.json'),
+    tired: require('../../assets/signs/tired.json'),
 };
 
 const ALPHABET_SIGNS: Record<string, SignClipData> = {
@@ -74,40 +74,40 @@ const ALPHABET_SIGNS: Record<string, SignClipData> = {
 // NOT the colon-prefixed mixamorig:RightHand seen in Blender/FBX files.
 const BONE_ALIASES: Record<string, string[]> = {
     // Right arm chain
-    RightArm:          ['mixamorig_RightArm'],
-    RightForeArm:      ['mixamorig_RightForeArm'],
-    RightHand:         ['mixamorig_RightHand'],
-    RightShoulder:     ['mixamorig_RightShoulder'],
+    RightArm: ['mixamorig_RightArm'],
+    RightForeArm: ['mixamorig_RightForeArm'],
+    RightHand: ['mixamorig_RightHand'],
+    RightShoulder: ['mixamorig_RightShoulder'],
     // Right thumb
-    RightHandThumb1:   ['mixamorig_RightHandThumb1'],
-    RightHandThumb2:   ['mixamorig_RightHandThumb2'],
-    RightHandThumb3:   ['mixamorig_RightHandThumb3'],
+    RightHandThumb1: ['mixamorig_RightHandThumb1'],
+    RightHandThumb2: ['mixamorig_RightHandThumb2'],
+    RightHandThumb3: ['mixamorig_RightHandThumb3'],
     // Right index
-    RightHandIndex1:   ['mixamorig_RightHandIndex1'],
-    RightHandIndex2:   ['mixamorig_RightHandIndex2'],
-    RightHandIndex3:   ['mixamorig_RightHandIndex3'],
+    RightHandIndex1: ['mixamorig_RightHandIndex1'],
+    RightHandIndex2: ['mixamorig_RightHandIndex2'],
+    RightHandIndex3: ['mixamorig_RightHandIndex3'],
     // Right middle
-    RightHandMiddle1:  ['mixamorig_RightHandMiddle1'],
-    RightHandMiddle2:  ['mixamorig_RightHandMiddle2'],
-    RightHandMiddle3:  ['mixamorig_RightHandMiddle3'],
+    RightHandMiddle1: ['mixamorig_RightHandMiddle1'],
+    RightHandMiddle2: ['mixamorig_RightHandMiddle2'],
+    RightHandMiddle3: ['mixamorig_RightHandMiddle3'],
     // Right ring
-    RightHandRing1:    ['mixamorig_RightHandRing1'],
-    RightHandRing2:    ['mixamorig_RightHandRing2'],
+    RightHandRing1: ['mixamorig_RightHandRing1'],
+    RightHandRing2: ['mixamorig_RightHandRing2'],
     // Right pinky
-    RightHandPinky1:   ['mixamorig_RightHandPinky1'],
-    RightHandPinky2:   ['mixamorig_RightHandPinky2'],
+    RightHandPinky1: ['mixamorig_RightHandPinky1'],
+    RightHandPinky2: ['mixamorig_RightHandPinky2'],
     // Left arm chain
-    LeftArm:           ['mixamorig_LeftArm'],
-    LeftForeArm:       ['mixamorig_LeftForeArm'],
-    LeftHand:          ['mixamorig_LeftHand'],
-    LeftShoulder:      ['mixamorig_LeftShoulder'],
+    LeftArm: ['mixamorig_LeftArm'],
+    LeftForeArm: ['mixamorig_LeftForeArm'],
+    LeftHand: ['mixamorig_LeftHand'],
+    LeftShoulder: ['mixamorig_LeftShoulder'],
     // Spine / Head
-    Hips:              ['mixamorig_Hips'],
-    Spine:             ['mixamorig_Spine'],
-    Spine1:            ['mixamorig_Spine1'],
-    Spine2:            ['mixamorig_Spine2'],
-    Neck:              ['mixamorig_Neck'],
-    Head:              ['mixamorig_Head'],
+    Hips: ['mixamorig_Hips'],
+    Spine: ['mixamorig_Spine'],
+    Spine1: ['mixamorig_Spine1'],
+    Spine2: ['mixamorig_Spine2'],
+    Neck: ['mixamorig_Neck'],
+    Head: ['mixamorig_Head'],
 };
 
 const CLIP_GAP_MS = 160;
@@ -169,7 +169,7 @@ const toClip = (name: string, signData: SignClipData): THREE.AnimationClip | nul
 
 const normalizeWord = (word: string | undefined | null): string => {
     if (!word) return '';
-    const cleaned = word.trim().toLowerCase();
+    const cleaned = word.toLowerCase();
     if (!cleaned) {
         return '';
     }
@@ -189,10 +189,10 @@ const diagnosticReport = () => {
             Object.keys(frame.bones).forEach((bone) => allBonesInSigns.add(bone));
         });
     });
-    
+
     const aliasedBones = new Set(Object.keys(BONE_ALIASES));
     const missing = Array.from(allBonesInSigns).filter((b) => !aliasedBones.has(b));
-    
+
     console.log('[SignEngine] 🔍 DIAGNOSTIC REPORT:');
     console.log('[SignEngine] Bone aliases defined:', aliasedBones.size);
     console.log('[SignEngine] Unique bones in sign JSON:', allBonesInSigns.size);
@@ -205,7 +205,7 @@ const diagnosticReport = () => {
 export const createSignEngine = (mixer: THREE.AnimationMixer) => {
     let activeTimers: ReturnType<typeof setTimeout>[] = [];
     let currentActions: THREE.AnimationAction[] = [];
-    
+
     // Run diagnostic on engine creation
     diagnosticReport();
 

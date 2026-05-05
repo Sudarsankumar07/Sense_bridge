@@ -1,23 +1,43 @@
-import { ObjectDetection, CloudError } from '../../types';
+import { ObjectDetection } from '../../types';
 import { CLOUD_PROVIDER } from '@env';
 import { detectObjectsRoboflow } from './objectDetection.roboflow';
 import { detectObjectsGoogleVision } from './objectDetection.googleVision';
+import { detectObjectsGemini } from './objectDetection.gemini';
 
 /**
  * Object Detection Service – Provider Selector
  *
- * Routes to Roboflow or Google Vision based on the CLOUD_PROVIDER env variable.
+ * Routes to Roboflow, Google Vision, or Gemini based on:
+ *   1. The runtime provider set via setProvider() (from the in-app toggle)
+ *   2. Fallback: the CLOUD_PROVIDER environment variable
+ *
  * Throws CloudError on failures instead of returning silent empty arrays.
  */
 
-const provider = (CLOUD_PROVIDER || 'roboflow').toLowerCase();
+export type DetectionProvider = 'roboflow' | 'google' | 'gemini';
 
-// Log selected provider at module load (startup)
-console.log(`[SenseBridge] Object Detection provider: ${provider}`);
+// Runtime provider — starts from .env, can be changed by the in-app toggle
+let runtimeProvider: DetectionProvider =
+    ((CLOUD_PROVIDER || 'gemini').toLowerCase() as DetectionProvider);
+
+/** Call this from the UI toggle to switch providers at runtime without a reload. */
+export const setDetectionProvider = (p: DetectionProvider) => {
+    runtimeProvider = p;
+    console.log(`[SenseBridge] Object Detection provider switched to: ${p}`);
+};
+
+export const getDetectionProvider = (): DetectionProvider => runtimeProvider;
+
+// Log active provider at module load
+console.log(`[SenseBridge] Object Detection startup provider: ${runtimeProvider}`);
 
 export const detectObjects = async (imageBase64: string): Promise<ObjectDetection[]> => {
-    if (provider === 'google') {
-        return detectObjectsGoogleVision(imageBase64);
+    switch (runtimeProvider) {
+        case 'google':
+            return detectObjectsGoogleVision(imageBase64);
+        case 'gemini':
+            return detectObjectsGemini(imageBase64);
+        default:
+            return detectObjectsRoboflow(imageBase64);
     }
-    return detectObjectsRoboflow(imageBase64);
 };

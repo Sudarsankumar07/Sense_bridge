@@ -68,6 +68,7 @@ export const config = {
         OBJECT_DETECTION: 'https://detect.roboflow.com',
         CURRENCY_DETECTION: 'https://detect.roboflow.com',
         GOOGLE_VISION: 'https://vision.googleapis.com/v1/images:annotate',
+        GEMINI_VISION: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         SIGN_LANGUAGE: 'https://api-inference.huggingface.co/models',
         ORS_GEOCODE: 'https://api.openrouteservice.org/geocode/search',
         ORS_DIRECTIONS: 'https://api.openrouteservice.org/v2/directions/foot-walking',

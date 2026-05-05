@@ -105,6 +105,16 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             _origLog(...args);
         };
 
+        // ── WORKAROUND: expo-gl + three.js trim() crash ──
+        // three.js calls .trim() on gl.getShaderInfoLog() and gl.getProgramInfoLog().
+        // On some devices, expo-gl returns null/undefined instead of an empty string,
+        // causing a fatal "Cannot read property 'trim' of undefined" render loop crash.
+        const _getShaderInfoLog = gl.getShaderInfoLog.bind(gl);
+        gl.getShaderInfoLog = (shader: any) => _getShaderInfoLog(shader) || '';
+
+        const _getProgramInfoLog = gl.getProgramInfoLog.bind(gl);
+        gl.getProgramInfoLog = (program: any) => _getProgramInfoLog(program) || '';
+
         const renderer = new Renderer({ gl });
         renderer.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
         renderer.setClearColor(0x0b1021);
@@ -316,20 +326,28 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
 
             // ✅ IDLE POSE: Arms relaxed at sides (recalibrated for ZYX rotation order)
             // These Euler angles position arms naturally for sign language on top
+            // ── IDLE POSE ─────────────────────────────────────────────────────────
+            // In Mixamo GLB, the arm bones are oriented in T-pose (pointing sideways).
+            // Axes from the arm's local space:
+            //   X  = forward/backward tilt of the upper arm
+            //   Z  = up/down rotation of the upper arm  (neg Z = arm raised up)
+            //   Y  = inward/outward twist
+            // For idle:  arms hang at sides = z: -0.3 (slightly down from T-pose)
+            //            small forward lean = x: 0.3 (arms slightly in front of body)
             const idleBones: Record<string, { x: number; y: number; z: number }> = {
-                // Right arm down to side
-                mixamorig_RightShoulder: { x: 0.0, y: 0.0, z: 0.0 },
-                mixamorig_RightArm: { x: 0.0, y: 0.0, z: -0.5 },  // Arm down
-                mixamorig_RightForeArm: { x: 0.0, y: 0.0, z: 0.0 },  // Forearm neutral
-                mixamorig_RightHand: { x: 0.0, y: 0.0, z: 0.0 },  // Hand neutral
-                // Left arm down to side
-                mixamorig_LeftShoulder: { x: 0.0, y: 0.0, z: 0.0 },
-                mixamorig_LeftArm: { x: 0.0, y: 0.0, z: 0.5 },  // Arm down
-                mixamorig_LeftForeArm: { x: 0.0, y: 0.0, z: 0.0 },  // Forearm neutral
-                mixamorig_LeftHand: { x: 0.0, y: 0.0, z: 0.0 },  // Hand neutral
-                // Spine slight curve
-                mixamorig_Spine: { x: 0.0, y: 0.0, z: 0.0 },
-                mixamorig_Spine1: { x: 0.0, y: 0.0, z: 0.0 },
+                // Right arm — hangs naturally at side, slightly in front
+                mixamorig_RightShoulder: { x: 0.0,  y: 0.0, z: 0.0  },
+                mixamorig_RightArm:      { x: 0.3,  y: 0.0, z: -0.3 }, // arm down, leaning forward
+                mixamorig_RightForeArm:  { x: 0.0,  y: 0.0, z: 0.0  },
+                mixamorig_RightHand:     { x: 0.0,  y: 0.0, z: 0.0  },
+                // Left arm — mirror
+                mixamorig_LeftShoulder:  { x: 0.0,  y: 0.0, z: 0.0  },
+                mixamorig_LeftArm:       { x: 0.3,  y: 0.0, z: 0.3  }, // arm down, leaning forward
+                mixamorig_LeftForeArm:   { x: 0.0,  y: 0.0, z: 0.0  },
+                mixamorig_LeftHand:      { x: 0.0,  y: 0.0, z: 0.0  },
+                // Spine
+                mixamorig_Spine:         { x: 0.0,  y: 0.0, z: 0.0  },
+                mixamorig_Spine1:        { x: 0.0,  y: 0.0, z: 0.0  },
             };
 
             const idleTracks: THREE.KeyframeTrack[] = [];

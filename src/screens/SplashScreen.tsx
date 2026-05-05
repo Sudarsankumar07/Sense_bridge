@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -84,7 +83,6 @@ export const SplashScreen: React.FC = () => {
     return (
         <Animated.View style={[styles.wrapper, { opacity: fadeOut }]}>
             <LinearGradient colors={theme.gradients.hero} style={styles.container}>
-                <StatusBar style="light" />
                 <Animated.View
                     style={[
                         styles.orb,

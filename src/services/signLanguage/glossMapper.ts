@@ -60,8 +60,7 @@ export const mapTranscriptToGloss = (
     }
     const cleaned = text
         .replace(/[^a-zA-Z0-9\s]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+        .replace(/\s+/g, ' ');
 
     const tokens = cleaned
         .split(' ')

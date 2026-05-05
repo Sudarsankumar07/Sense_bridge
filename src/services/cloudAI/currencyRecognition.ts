@@ -1,31 +1,36 @@
-import { CurrencyDetection, CloudError } from '../../types';
-import { CLOUD_PROVIDER } from '@env';
+import { CurrencyDetection } from '../../types';
 import config from '../../constants/config';
 import { detectCurrencyRoboflow } from './currencyRecognition.roboflow';
 import { detectCurrencyGoogleVision } from './currencyRecognition.googleVision';
+import { detectCurrencyGemini } from './currencyRecognition.gemini';
+import { DetectionProvider, getDetectionProvider } from './objectDetection';
 
 /**
  * Currency Recognition Service – Provider Selector
  *
- * Routes to Roboflow or Google Vision based on CLOUD_PROVIDER env variable.
+ * Shares the same runtime provider as object detection (controlled by the in-app toggle).
+ * Routes to Roboflow, Google Vision, or Gemini.
  * Maintains majority-voting buffer regardless of provider.
  * Throws CloudError on failures instead of returning mock data.
  */
-
-const provider = (CLOUD_PROVIDER || 'roboflow').toLowerCase();
-
-console.log(`[SenseBridge] Currency Detection provider: ${provider}`);
 
 // Majority voting buffer
 let detectionBuffer: number[] = [];
 
 export const detectCurrency = async (imageBase64: string): Promise<CurrencyDetection | null> => {
+    const provider: DetectionProvider = getDetectionProvider();
+
     let raw: CurrencyDetection | null;
 
-    if (provider === 'google') {
-        raw = await detectCurrencyGoogleVision(imageBase64);
-    } else {
-        raw = await detectCurrencyRoboflow(imageBase64);
+    switch (provider) {
+        case 'google':
+            raw = await detectCurrencyGoogleVision(imageBase64);
+            break;
+        case 'gemini':
+            raw = await detectCurrencyGemini(imageBase64);
+            break;
+        default:
+            raw = await detectCurrencyRoboflow(imageBase64);
     }
 
     if (!raw) return null;
@@ -36,7 +41,6 @@ export const detectCurrency = async (imageBase64: string): Promise<CurrencyDetec
         detectionBuffer.shift();
     }
 
-    // Get majority vote
     const finalDenomination = getMajorityVote(detectionBuffer);
 
     return {
@@ -46,9 +50,6 @@ export const detectCurrency = async (imageBase64: string): Promise<CurrencyDetec
     };
 };
 
-/**
- * Get majority vote from buffer
- */
 const getMajorityVote = (buffer: number[]): number => {
     if (buffer.length === 0) return 0;
 
@@ -69,9 +70,6 @@ const getMajorityVote = (buffer: number[]): number => {
     return majorityValue;
 };
 
-/**
- * Reset detection buffer
- */
 export const resetCurrencyBuffer = () => {
     detectionBuffer = [];
 };

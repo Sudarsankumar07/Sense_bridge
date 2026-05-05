@@ -11,7 +11,7 @@ import { theme } from '../theme';
 import { CameraViewComponent, AlertModal } from '../components';
 import { MicFAB } from '../components/MicFAB';
 import { captureFrame } from '../utils/camera';
-import { detectObjects } from '../services/cloudAI/objectDetection';
+import { detectObjects, setDetectionProvider, getDetectionProvider, DetectionProvider } from '../services/cloudAI/objectDetection';
 import { detectCurrency } from '../services/cloudAI/currencyRecognition';
 import { buildObstacleAlert, buildCurrencyAlert, shouldTriggerAlert } from '../utils/decisionEngine';
 import { hapticWarning, hapticSuccess, hapticSelection } from '../services/haptics';
@@ -31,6 +31,32 @@ export const BlindModeScreen: React.FC = () => {
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertText, setAlertText] = useState('');
     const [cloudError, setCloudError] = useState<string | null>(null);
+
+    // Provider toggle state — starts from whatever getDetectionProvider() returns (from .env)
+    const [activeProvider, setActiveProvider] = useState<DetectionProvider>(getDetectionProvider());
+
+    const PROVIDER_CYCLE: DetectionProvider[] = ['gemini', 'google', 'roboflow'];
+    const PROVIDER_LABELS: Record<DetectionProvider, string> = {
+        gemini: '✦ Gemini',
+        google: '☁ Cloud Vision',
+        roboflow: '⚡ Roboflow',
+    };
+    const PROVIDER_COLORS: Record<DetectionProvider, string> = {
+        gemini: '#3DEFF5',
+        google: '#7C9BF7',
+        roboflow: '#7CFF9A',
+    };
+
+    const cycleProvider = useCallback(() => {
+        hapticSelection();
+        setActiveProvider(prev => {
+            const idx = PROVIDER_CYCLE.indexOf(prev);
+            const next = PROVIDER_CYCLE[(idx + 1) % PROVIDER_CYCLE.length];
+            setDetectionProvider(next);
+            speak(`Switched to ${next === 'gemini' ? 'Gemini Vision' : next === 'google' ? 'Cloud Vision' : 'Roboflow'}`);
+            return next;
+        });
+    }, []);
 
     // Ref so MicFAB can expose its trigger to the volume-button hook
     const micTriggerRef = useRef<(() => void) | null>(null);
@@ -144,7 +170,14 @@ export const BlindModeScreen: React.FC = () => {
                     }
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // If Gemini is active, use a longer delay to respect the 15 RPM free tier limit (429 Error).
+                // If both obstacle and currency are active, we make 2 requests per loop.
+                const isGemini = activeProvider === 'gemini';
+                const baseWait = isGemini ? 4000 : 2000;
+                // Add extra wait if we did two requests
+                const extraWait = (isGemini && obstacleActive && currencyActive) ? 2000 : 0;
+                
+                await new Promise(resolve => setTimeout(resolve, baseWait + extraWait));
             }
         };
 
@@ -155,7 +188,6 @@ export const BlindModeScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="light" />
             <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
                 <TouchableOpacity
                     style={styles.backButton}
@@ -168,6 +200,22 @@ export const BlindModeScreen: React.FC = () => {
                 </TouchableOpacity>
                 <Text style={styles.title}>Blind Mode</Text>
                 <Text style={styles.subtitle}>Real-time obstacle and currency awareness.</Text>
+
+                {/* ── Provider Toggle Pill — top-right corner ── */}
+                <TouchableOpacity
+                    style={[
+                        styles.providerToggle,
+                        { borderColor: PROVIDER_COLORS[activeProvider] },
+                    ]}
+                    onPress={cycleProvider}
+                    accessibilityLabel={`AI provider: ${PROVIDER_LABELS[activeProvider]}. Tap to switch.`}
+                    accessibilityRole="button"
+                >
+                    <Text style={[styles.providerDot, { color: PROVIDER_COLORS[activeProvider] }]}>●</Text>
+                    <Text style={[styles.providerLabel, { color: PROVIDER_COLORS[activeProvider] }]}>
+                        {PROVIDER_LABELS[activeProvider]}
+                    </Text>
+                </TouchableOpacity>
             </LinearGradient>
 
             <View style={styles.content}>
@@ -242,6 +290,29 @@ const styles = StyleSheet.create({
     hero: {
         padding: theme.spacing.lg,
         position: 'relative',
+    },
+    // ── Provider Toggle Pill ─────────────────────────────────────────────────
+    providerToggle: {
+        position: 'absolute',
+        top: theme.spacing.md,
+        right: theme.spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(10, 15, 35, 0.75)',
+        borderRadius: 999,
+        borderWidth: 1,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        zIndex: 20,
+    },
+    providerDot: {
+        fontSize: 8,
+    },
+    providerLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.3,
     },
     backButton: {
         position: 'absolute',

@@ -31,7 +31,6 @@ export const SettingsScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="light" />
             <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
                 <Text style={styles.title}>Settings</Text>
                 <Text style={styles.subtitle}>Tune the experience to your needs.</Text>

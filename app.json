@@ -18,7 +18,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "SenseBridge needs camera access for obstacle detection and sign language recognition",
         "NSMicrophoneUsageDescription": "SenseBridge needs microphone access for voice commands and speech recognition",
-        "NSLocationWhenInUseUsageDescription": "SenseBridge needs location access for walking navigation in Blind Mode"
+        "NSLocationWhenInUseUsageDescription": "SenseBridge needs location access for walking navigation in Blind Mode",
+        "UIStatusBarHidden": true
       }
     },
     "android": {
@@ -34,6 +35,9 @@
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.susan07.sensebridgesusan07"
+    },
+    "androidStatusBar": {
+      "hidden": true
     },
     "plugins": [
       [

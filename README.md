@@ -1,212 +1,142 @@
 # SenseBridge
 
-An accessibility-first mobile app for Deaf, Blind, and Mute users — featuring real-time obstacle detection, currency recognition, walking navigation, sign-language avatar animation, and voice-first mode selection.
-
----
+SenseBridge is an Expo + React Native accessibility app that combines camera AI, voice control, navigation, and a 3D signing avatar.
 
 ## Tech Stack
 
-### Core Framework
-
-| Technology | Version | Role |
-|---|---|---|
-| **React Native** | `0.81.5` | Cross-platform mobile UI runtime |
-| **Expo SDK** | `~54.0.33` | Managed workflow, native module access |
-| **TypeScript** | `~5.9.2` | Static typing throughout |
-| **React** | `19.1.0` | Component model and hooks |
-
-### Navigation
-
-| Technology | Role |
+| Area | Stack |
 |---|---|
-| **@react-navigation/native** `^6.1.9` | Navigation container and screen transitions |
-| **@react-navigation/stack** `^6.3.20` | Stack navigator (Splash → ModeSelection → Modes) |
-| **react-native-screens** `~4.16.0` | Native screen optimization |
-| **react-native-gesture-handler** `~2.28.0` | Gesture support for navigaton/swipe interactions |
-| **react-native-safe-area-context** `~5.6.0` | Safe area insets on notched devices |
+| Core | React Native `0.81.5`, Expo SDK `54`, React `19`, TypeScript |
+| Navigation | `@react-navigation/native`, `@react-navigation/stack` |
+| Voice + Audio | `expo-speech`, `expo-av`, Web Speech API (web fallback) |
+| Camera + Vision | `expo-camera`, `expo-file-system`, cloud AI providers |
+| 3D Avatar | `three`, `three-stdlib`, `expo-gl`, `expo-three` |
+| Maps | `expo-location`, `react-native-webview`, Leaflet + OpenStreetMap |
+| Storage | `@react-native-async-storage/async-storage`, `expo-sqlite` |
+| UI | `expo-linear-gradient`, `@expo/vector-icons`, `expo-haptics`, `@react-native-community/slider` |
+| Build/Config | EAS (`eas.json`), Metro, Babel module resolver, `react-native-dotenv` |
 
-### 3D Avatar & Rendering
+## Overall Architecture
 
-| Technology | Role |
-|---|---|
-| **Three.js** `^0.166.1` | 3D scene, lighting, materials, and animation mixer |
-| **three-stdlib** `^2.36.1` | GLTFLoader + DRACOLoader for loading `.glb` avatar models |
-| **expo-gl** `~16.0.10` | OpenGL ES surface in React Native (powers the 3D canvas) |
-| **expo-three** `^8.0.0` | Expo-compatible Three.js renderer |
-| **@react-three/fiber** `^9.5.0` | React renderer for Three.js (web path) |
-| **@react-three/drei** `^10.7.7` | Three.js helpers (web path) |
-
-> **Avatar Pipeline:** A standard humanoid **Mixamo Y-Bot** (`avatar.glb`) is loaded via GLTFLoader. The pipeline parses the model's skeleton (e.g., `RightArm`, `LeftForeArm`, `RightHandIndex1`, etc.). `THREE.AnimationMixer` takes predefined sign-animation coordinate sequences (JSON) and applies mathematically interpolated rotations to the Y-Bot's specific bones over a set duration, creating fluid, continuous signing motions.
-
-### AI / Cloud Services
-
-| Service | Provider | Role |
-|---|---|---|
-| **Object Detection** | Google Cloud Vision API / Roboflow | Detects obstacles in camera frames (Blind Mode) |
-| **Currency Recognition** | Google Cloud Vision API / Roboflow | Identifies Indian currency denominations (Blind Mode) |
-| **Speech-to-Text (Native)** | Google Cloud Speech-to-Text API | Converts mic recordings to text (voice commands) |
-| **Speech-to-Text (Web)** | Browser Web Speech API | Web fallback for voice recognition |
-| **Sign Language Recognition** | Placeholder / `signLanguage.ts` | Future: MediaPipe / TFLite |
-
-> Provider selection is driven by the `CLOUD_PROVIDER` environment variable (`roboflow` or `google`).
-
-### Voice & Audio
-
-| Technology | Role |
-|---|---|
-| **expo-speech** `~14.0.8` | Text-to-Speech (TTS) for blind mode and voice feedback |
-| **expo-av** `~16.0.8` | Microphone recording for voice commands |
-| **Google Cloud STT** | Converts recorded audio (`.3gp` Android / `.wav` iOS) to text |
-
-### Navigation & Maps
-
-| Technology | Role |
-|---|---|
-| **expo-location** `~19.0.8` | GPS coordinates and heading |
-| **OpenRouteService API** | Geocoding (address → coordinates) + walking route planning |
-| **react-native-webview** `13.15.0` | Renders Leaflet.js + OpenStreetMap for the route map view |
-| **Leaflet.js** | In-WebView interactive map with polyline route display |
-
-### Storage & Persistence
-
-| Technology | Role |
-|---|---|
-| **@react-native-async-storage/async-storage** `2.2.0` | User settings and last-used mode |
-| **expo-sqlite** `~16.0.10` | Local history log (mode, output, timestamp) |
-
-### UI & Styling
-
-| Technology | Role |
-|---|---|
-| **expo-linear-gradient** `~15.0.8` | Hero gradient backgrounds on all screens |
-| **@expo/vector-icons** `^15.0.3` | Ionicons icon set |
-| **lottie-react-native** `~7.3.1` | Lottie animation support |
-| **@expo-google-fonts/inter** `^0.4.2` | Inter font family |
-| **expo-font** `~14.0.11` | Custom font loading |
-| **expo-haptics** `~15.0.8` | Haptic feedback (warnings, selections, successes) |
-| **expo-status-bar** `~3.0.9` | Status bar theming |
-
-### Camera
-
-| Technology | Role |
-|---|---|
-| **expo-camera** `~17.0.10` | Live camera preview for Blind Mode and Sign Mode |
-| **expo-file-system** `^13.2.1` | Reading camera frame data and writing reports |
-| **expo-asset** `^55.0.10` | Bundling and loading local `.glb` model assets |
-
-### Environment / Config
-
-| Technology | Role |
-|---|---|
-| **react-native-dotenv** `^3.4.11` | `.env` injection into the app (`@env` imports) |
-| **babel-plugin-module-resolver** `^5.0.2` | Path aliasing (`../services` → `@services`) |
-
----
-
-## Application Architecture
-
-```
+```text
 App.tsx
-└── AppNavigator (React Navigation Stack)
-    ├── SplashScreen          → Permissions + voice welcome
-    ├── ModeSelectionScreen   → Voice-first mode selection (Blind / Sign / Deaf)
-    ├── BlindModeScreen       → Camera + obstacle/currency detection + TTS + haptics
-    ├── SignModeScreen        → Camera + sign-language recognition (placeholder)
-    ├── DeafModeScreen        → Text input → sign animation via 3D avatar
-    ├── NavigationScreen      → Walking navigation with GPS + turn-by-turn + map
-    └── SettingsScreen        → Voice speed, vibration, language preferences
+└── AppNavigator (Stack)
+    ├── SplashScreen
+    ├── ModeSelectionScreen
+    ├── BlindModeScreen
+    ├── SignModeScreen
+    ├── DeafModeScreen
+    ├── NavigationScreen
+    └── SettingsScreen
+
+Mode screens use:
+- hooks/        (voice, volume-trigger, sign engine)
+- services/     (cloud AI, voice, location, navigation, storage, haptics)
+- components/   (CameraView, MicFAB, AvatarCanvas, NavigationMap)
+- utils/        (camera capture, decision logic, permissions)
 ```
 
----
+## End-to-End App Flow
 
-## Feature Modes
+1. `App.tsx` mounts `AppNavigator` inside gesture + safe-area providers.
+2. `SplashScreen` requests camera/mic/location permissions and transitions to mode selection.
+3. `ModeSelectionScreen` speaks a welcome prompt, listens for mode commands, and supports manual card taps.
+4. User enters one of the main modes:
+   - **Blind Mode** (obstacle/currency awareness)
+   - **Sign Mode** (camera sign recognition to text/voice)
+   - **Deaf Mode** (text to animated sign avatar)
+5. From Blind Mode, user can open **Navigation** for walking guidance.
+6. Shared services handle TTS, speech recognition, API calls, haptics, location tracking, and local persistence.
 
-### 🦯 Blind Mode
-- Continuous camera frame capture every 2 seconds
-- Object detection → obstacle alerts with distance estimates
-- Currency denomination recognition for Indian notes
-- Voice-first controls (`obstacle`, `currency`, `navigate`, `back`)
-- TTS announcements + haptic warnings
+## Modes and How They Work
 
-### 🤟 Deaf Mode
-- Type text → sign-language avatar animation
-- 3D humanoid avatar rendered via Three.js + `expo-gl`
-- Uses the **Mixamo Y-Bot** as the base rigged model, combined with an FK (Forward Kinematics) animation system that maps joint rotations (shoulders, elbows, wrists, fingers) to timed keyframes.
-- Sign lexicon covers: HELLO, THANK YOU, YES, NO, HELP, PLEASE, STOP (+ fingerspell fallback)
-- Sign pipeline: Text → Gloss Mapper → Timeline Planner (JSON sequences) → Animation Executor → Y-Bot AnimationMixer
+| Mode | Input | Processing | Output |
+|---|---|---|---|
+| Blind Mode | Camera frames + mic/volume trigger commands | Object + currency detection via selected provider (`gemini`/`google`/`roboflow`) | Spoken alerts, haptics, status cards |
+| Sign Mode | Camera frames | Gemini-based ISL sign recognition (`sign`, `text`, `confidence`, `type`) | Recognized sign text + spoken translation |
+| Deaf Mode | Typed text | Local sign animation pipeline (no cloud call): text → words → sign/alphabet clips → mixer playback | 3D avatar signing animation |
+| Navigation | Voice destination + GPS updates | ORS geocoding + walking route + step tracking | Turn-by-turn voice instructions + map + arrival alerts |
 
-### 🗣️ Sign Mode
-- Camera-based sign recognition (placeholder for MediaPipe/TFLite integration)
+## APIs and External Services Used
 
-### 🧭 Navigation Mode
-- Voice-driven destination input (e.g., "Salem to New York")
-- Geocoding via OpenRouteService
-- Walking route display on Leaflet.js map (inside WebView)
-- Turn-by-turn instructions with GPS progress tracking
-- Voice announcements at each step + arrival detection
+| API / Service | Where used | Purpose |
+|---|---|---|
+| `generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent` | Object detection, currency recognition, ISL sign recognition, native voice transcription | Main Gemini multimodal API |
+| `vision.googleapis.com/v1/images:annotate` | Optional object + currency providers | Google Cloud Vision provider |
+| `detect.roboflow.com/<model>` | Optional object + currency providers | Roboflow provider |
+| `api.openrouteservice.org/geocode/search` | Navigation | Destination geocoding |
+| `api.openrouteservice.org/v2/directions/foot-walking` | Navigation | Walking route with steps + geometry |
+| `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` | Navigation map WebView (Leaflet) | Map tiles |
+| Browser Web Speech API | Web voice input | Speech recognition fallback on web |
 
----
+## Avatar Pipeline (Deaf Mode)
+
+1. `DeafModeScreen` gets text input and calls `createSignEngine(...).playText(...)`.
+2. `AvatarCanvas.native.tsx` loads `assets/models/avatar.glb` (Mixamo rig), sets scene/lights/camera, creates `THREE.AnimationMixer`, and keeps an idle pose.
+3. `useSignEngine.ts` converts text into words, maps to core sign JSON clips, and falls back to alphabet fingerspelling clips when needed.
+4. Frame bone rotations are converted to quaternion tracks (`ZYX` rotation order), then scheduled with crossfades.
+5. Mixer plays clips sequentially; user can drag to orbit and pinch to zoom the avatar.
 
 ## Environment Variables
 
-Create a `.env` file (see `.env.example`):
+Create a `.env` file in the project root:
 
 ```env
+GEMINI_API_KEY=your_key_here
 GOOGLE_CLOUD_VISION_API_KEY=your_key_here
 ROBOFLOW_API_KEY=your_key_here
 OPENROUTESERVICE_API_KEY=your_key_here
-CLOUD_PROVIDER=roboflow   # or 'google'
-```
 
----
+# Provider selection for Blind Mode
+CLOUD_PROVIDER=google
+
+# Optional Roboflow model overrides
+ROBOFLOW_OBJECT_MODEL=obstacle-detection-yp5nu/4
+ROBOFLOW_CURRENCY_MODEL=indian-currency
+```
 
 ## Getting Started
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm start
-
-# Run on Android
 npm run android
-
-# Run on iOS
 npm run ios
 ```
 
----
+## Permissions
 
-## Permissions Required
-
-| Permission | Platform | Why |
+| Permission | Platform | Purpose |
 |---|---|---|
-| Camera | Android + iOS | Obstacle detection, currency recognition, sign recognition |
-| Microphone | Android + iOS | Voice commands and speech-to-text |
-| Location (When In Use) | Android + iOS | Walking navigation in Blind Mode |
-| Vibration | Android | Haptic feedback for alerts |
-
----
+| Camera | Android + iOS | Blind + Sign mode frame capture |
+| Microphone | Android + iOS | Voice commands / transcription |
+| Location (foreground) | Android + iOS | Navigation |
+| Vibration | Android | Haptic alerts |
 
 ## Project Structure
 
-```
+```text
 src/
-├── components/         # Reusable UI components (AvatarCanvas, CameraView, NavigationMap, etc.)
-├── constants/          # App config (API endpoints, voice settings, thresholds)
-├── hooks/              # Custom hooks (useVoiceCommands, useSignEngine, etc.)
-├── navigation/         # AppNavigator stack definition
-├── screens/            # All screen components (BlindMode, DeafMode, Navigation, etc.)
-├── services/           # Core services (voiceEngine, locationService, navigationService, etc.)
-│   ├── cloudAI/        # Object detection, currency, sign language, STT
-│   └── signLanguage/   # Gloss mapper, timeline planner/executor, animation lexicon
-├── theme/              # Color palette, typography, spacing, gradients
-├── types/              # Shared TypeScript types
-└── utils/              # Helper functions (camera capture, decision engine, permissions)
-Docs/                   # Architecture plans, RCAs, and implementation guides
+├── components/      # AvatarCanvas, CameraView, MicFAB, NavigationMap, ...
+├── constants/       # App constants and API endpoints
+├── hooks/           # useVoiceCommands, useVolumeButtonTrigger, useSignEngine, ...
+├── navigation/      # App navigator
+├── screens/         # Splash, mode screens, navigation, settings
+├── services/
+│   ├── cloudAI/     # Gemini/Google/Roboflow integrations
+│   ├── voiceEngine.ts
+│   ├── navigationService.ts
+│   ├── locationService.ts
+│   └── storage.ts
+├── theme/
+├── types/
+└── utils/
 assets/
-├── models/             # 3D models (avatar.glb)
-└── signs/              # Sign language JSON lexicons and alphabet signs
-scripts/                # Project utility and maintenance scripts
+├── models/avatar.glb
+└── signs/           # Core signs + alphabet sign JSON
 ```
+
+## Implementation Notes
+
+- `SettingsScreen` exists in the navigation stack, but there is currently no direct in-app entry point to open it.
+- `src/services/cloudAI/speechToText.ts` is a demo/mock module and is not the active runtime voice path (runtime uses `voiceEngine.ts`).

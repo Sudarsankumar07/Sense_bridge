@@ -1,8 +1,8 @@
 {
   "sign": "help",
   "fps": 30,
-  "duration": 1.0,
-  "notes": "ASL HELP: Right A-hand (closed fist) rests on left open palm at neutral space, lifts upward with smooth motion.",
+  "duration": 1,
+  "notes": "ASL HELP: Right A-hand (closed fist) rests on left open palm at neutral space, lifts upward with smooth motion. [ARM-FIXED: positive X forward, negative forearm X bends elbow toward body]",
   "handshape": {
     "RightHand": "A-hand (closed fist with thumb out)",
     "LeftHand": "5-hand (open palm, facing up)",
@@ -10,158 +10,158 @@
   },
   "frames": [
     {
-      "time": 0.0,
+      "time": 0,
       "description": "Start: A-hand rests on open palm at waist level",
       "bones": {
         "RightArm": {
-          "x": -0.1,
+          "x": 0.4,
           "y": -0.2,
           "z": -0.9
         },
         "RightForeArm": {
-          "x": 0.7,
-          "y": 0.0,
-          "z": 0.0
+          "x": -0.7,
+          "y": 0,
+          "z": 0
         },
         "RightHand": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "RightHandIndex1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandIndex2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandIndex3": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandMiddle1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandMiddle2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandMiddle3": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandRing1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandRing2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandPinky1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandPinky2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandThumb1": {
-          "x": 0.0,
+          "x": 0,
           "y": 0.2,
-          "z": 0.0
+          "z": 0
         },
         "RightHandThumb2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftArm": {
-          "x": 0.15,
+          "x": 0.4,
           "y": -0.4,
           "z": 0.8
         },
         "LeftForeArm": {
           "x": -0.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "LeftHand": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandIndex1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandIndex2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandIndex3": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandMiddle1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandMiddle2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandMiddle3": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandRing1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandRing2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandPinky1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandPinky2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandThumb1": {
-          "x": 0.0,
+          "x": 0,
           "y": -0.2,
-          "z": 0.0
+          "z": 0
         },
         "LeftHandThumb2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         }
       }
     },
@@ -170,175 +170,175 @@
       "description": "Middle: A-hand lifting upward",
       "bones": {
         "RightArm": {
-          "x": -0.5,
+          "x": 0.4,
           "y": -0.1,
           "z": -0.7
         },
         "RightForeArm": {
-          "x": 0.9,
-          "y": 0.0,
-          "z": 0.0
+          "x": -0.9,
+          "y": 0,
+          "z": 0
         },
         "RightHand": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         }
       }
     },
     {
-      "time": 1.0,
+      "time": 1,
       "description": "End: Return to rest position",
       "bones": {
         "RightArm": {
-          "x": -0.1,
+          "x": 0.4,
           "y": -0.2,
           "z": -0.9
         },
         "RightForeArm": {
-          "x": 0.7,
-          "y": 0.0,
-          "z": 0.0
+          "x": -0.7,
+          "y": 0,
+          "z": 0
         },
         "RightHand": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "RightHandIndex1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandIndex2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandIndex3": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandMiddle1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandMiddle2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandMiddle3": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandRing1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandRing2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandPinky1": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandPinky2": {
           "x": 1.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "RightHandThumb1": {
-          "x": 0.0,
+          "x": 0,
           "y": 0.2,
-          "z": 0.0
+          "z": 0
         },
         "RightHandThumb2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftArm": {
-          "x": 0.15,
+          "x": 0.4,
           "y": -0.4,
           "z": 0.8
         },
         "LeftForeArm": {
           "x": -0.2,
-          "y": 0.0,
-          "z": 0.0
+          "y": 0,
+          "z": 0
         },
         "LeftHand": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandIndex1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandIndex2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandIndex3": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandMiddle1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandMiddle2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandMiddle3": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandRing1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandRing2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandPinky1": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandPinky2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         },
         "LeftHandThumb1": {
-          "x": 0.0,
+          "x": 0,
           "y": -0.2,
-          "z": 0.0
+          "z": 0
         },
         "LeftHandThumb2": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
+          "x": 0,
+          "y": 0,
+          "z": 0
         }
       }
     }
