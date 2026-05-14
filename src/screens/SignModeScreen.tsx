@@ -15,16 +15,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView } from 'expo-camera';
 import { theme } from '../theme';
 import { CameraViewComponent } from '../components';
-import { recognizeSign, ISLDetection } from '../services/cloudAI/signLanguage';
 import { speak } from '../services/voiceEngine';
 import { hapticSelection, hapticSuccess, hapticWarning } from '../services/haptics';
 import { useVoiceCommands } from '../hooks/useVoiceCommands';
 import { captureFrame } from '../utils/camera';
+import { MediaPipeGestureWebView } from '../components/MediaPipeGestureWebView';
+import { useMediaPipeGesture } from '../hooks/useMediaPipeGesture';
+import { useMediaPipeAssets } from '../hooks/useMediaPipeAssets';
+import { mapGestureToISL } from '../services/mediapipe';
+import type { ISLMappedGesture } from '../services/mediapipe';
 
 // Minimum confidence to show and speak a result
 const CONFIDENCE_THRESHOLD = 0.55;
-// How long to wait between captures (ms)
-const CAPTURE_INTERVAL_MS = 4500;
+// RC-6 FIX: Reduced from 4500ms to 1500ms for responsive gesture capture
+const CAPTURE_INTERVAL_MS = 1500;
 
 export const SignModeScreen: React.FC = () => {
     const navigation = useNavigation();
@@ -37,8 +41,17 @@ export const SignModeScreen: React.FC = () => {
     const [confidence, setConfidence] = useState<number>(0);
     const [isScanning, setIsScanning] = useState<boolean>(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [lastSpoken, setLastSpoken] = useState<string>('');
     const [scanCount, setScanCount] = useState<number>(0);
+    // true when the last result came from on-device MediaPipe
+    const [onDevice, setOnDevice] = useState<boolean>(false);
+
+    // RC-3 FIX: Download WASM + model to device cache so CDN is never needed again
+    const assets = useMediaPipeAssets();
+    const mp = useMediaPipeGesture();
+
+    // RC-2 FIX: use a ref for lastSpoken so the result-processing useEffect
+    // always reads the latest value without stale-closure issues
+    const lastSpokenRef = useRef<string>('');
 
     // Pulse animation for the scanning indicator
     const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -66,7 +79,14 @@ export const SignModeScreen: React.FC = () => {
         },
     });
 
-    // ── Main detection loop ──────────────────────────────────────────────────
+    // ── RC-1 & RC-2 FIX: Frame-send loop (send only — NO result read here) ──
+    //
+    // The previous architecture read mp.lastResult immediately after sendFrame(),
+    // which is a race condition: the WebView round-trip takes 50-300ms so the
+    // result was always null or one frame behind.
+    //
+    // Fix: this loop only captures + sends frames. Result processing is handled
+    // in a separate useEffect that reacts to mp.lastResult changes (below).
     useEffect(() => {
         let active = true;
 
@@ -78,59 +98,72 @@ export const SignModeScreen: React.FC = () => {
                     continue;
                 }
 
+                // Wait for MediaPipe WASM to finish loading
+                if (!mp.isReady) {
+                    await new Promise(r => setTimeout(r, 500));
+                    continue;
+                }
+
                 setIsScanning(true);
                 startPulse();
 
                 try {
                     const frame = await captureFrame(cameraRef.current);
 
-                    if (!frame?.base64 || !active) {
-                        setIsScanning(false);
-                        stopPulse();
-                        await new Promise(r => setTimeout(r, CAPTURE_INTERVAL_MS));
-                        continue;
-                    }
-
-                    setScanCount(c => c + 1);
-                    const result: ISLDetection = await recognizeSign(frame.base64);
-
-                    if (!active) break;
-
-                    setErrorMsg(null);
-
-                    if (result.confidence >= CONFIDENCE_THRESHOLD && result.sign !== 'none') {
-                        setCurrentSign(result.sign.toUpperCase());
-                        setCurrentText(result.text);
-                        setSignType(result.type);
-                        setConfidence(result.confidence);
-
-                        // Speak if it's a new sign (avoid repeating same sign every cycle)
-                        if (result.text !== lastSpoken) {
-                            speak(result.text);
-                            hapticSuccess();
-                            setLastSpoken(result.text);
-                        }
-                    } else if (result.sign === 'none') {
-                        // Don't clear previous result — keep showing last known sign
-                        setCurrentSign(prev => prev === 'Waiting for sign…' ? 'Waiting for sign…' : prev);
+                    if (frame?.base64 && active) {
+                        setScanCount(c => c + 1);
+                        // Send frame — result arrives asynchronously via onResult → mp.lastResult
+                        mp.sendFrame(frame.base64);
                     }
                 } catch (err: any) {
                     if (!active) break;
-                    const msg = err?.message ?? 'Detection error';
-                    console.error('[SignMode] Detection error:', msg);
+                    const msg = err?.message ?? 'Camera capture error';
+                    console.error('[SignMode] Camera error:', msg);
                     setErrorMsg(msg);
                     hapticWarning();
                 }
 
                 setIsScanning(false);
                 stopPulse();
+                // RC-6 FIX: 1500ms instead of 4500ms for responsive detection
                 await new Promise(r => setTimeout(r, CAPTURE_INTERVAL_MS));
             }
         };
 
         loop();
         return () => { active = false; };
-    }, [isFocused]);
+    }, [isFocused, mp.isReady]);
+
+    // ── RC-1 & RC-2 FIX: Event-driven result processing ───────────────────
+    //
+    // This effect fires whenever mp.lastResult updates (i.e. when the WebView
+    // posts a result back to React Native). This is the correct async pattern:
+    // we process the result as an event, not by polling synchronously after send.
+    useEffect(() => {
+        const result = mp.lastResult;
+        if (!result) return;
+
+        const mpMapped: ISLMappedGesture | null = mapGestureToISL(result.gesture, result.score);
+
+        setErrorMsg(null);
+        setOnDevice(true);
+
+        if (mpMapped && mpMapped.confidence >= CONFIDENCE_THRESHOLD) {
+            setCurrentSign(mpMapped.sign.toUpperCase());
+            setCurrentText(mpMapped.text);
+            setSignType(mpMapped.type);
+            setConfidence(mpMapped.confidence);
+
+            // Avoid repeating the same word — use ref to prevent stale closure
+            if (mpMapped.text !== lastSpokenRef.current) {
+                speak(mpMapped.text);
+                hapticSuccess();
+                lastSpokenRef.current = mpMapped.text;
+            }
+        }
+        // Note: when confidence < threshold we intentionally keep the last
+        // valid sign visible rather than reverting to "Waiting for sign…"
+    }, [mp.lastResult]);
 
     const confidenceColor = useCallback(() => {
         if (confidence >= 0.85) return '#4ade80';
@@ -139,6 +172,74 @@ export const SignModeScreen: React.FC = () => {
     }, [confidence]);
 
     const confidenceBar = confidence > 0 ? confidence : 0;
+
+    // ── RC-3 / RC-4 FIX: derive display error (init failure or runtime error) ─
+    const displayError = mp.initError ?? errorMsg;
+
+    // ── Download progress (0–100 integer for display) ─────────────────────────
+    const downloadPct = Math.round(assets.progress * 100);
+
+    // ── Show download screen while assets are being cached to device ──────────
+    if (assets.status === 'downloading' || assets.status === 'idle') {
+        return (
+            <SafeAreaView style={styles.container}>
+                <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => { hapticSelection(); navigation.goBack(); }}
+                    >
+                        <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+                    </TouchableOpacity>
+                    <View style={styles.headerContent}>
+                        <Text style={styles.title}>Sign Mode</Text>
+                        <Text style={styles.subtitle}>Indian Sign Language (ISL) Detection</Text>
+                    </View>
+                </LinearGradient>
+                <View style={styles.downloadScreen}>
+                    <Ionicons name="cloud-download-outline" size={48} color={theme.colors.primary} />
+                    <Text style={styles.downloadTitle}>Preparing AI Engine</Text>
+                    <Text style={styles.downloadSubtitle}>
+                        Downloading MediaPipe (~27 MB) to your device.{`\n`}
+                        This happens only once — future launches are instant.
+                    </Text>
+                    {/* Progress bar */}
+                    <View style={styles.progressBarBg}>
+                        <View style={[styles.progressBarFill, { width: `${downloadPct}%` as any }]} />
+                    </View>
+                    <Text style={styles.downloadPct}>{downloadPct}%</Text>
+                    {assets.currentFile !== '' && (
+                        <Text style={styles.downloadFile}>{assets.currentFile}</Text>
+                    )}
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (assets.status === 'error') {
+        return (
+            <SafeAreaView style={styles.container}>
+                <LinearGradient colors={theme.gradients.hero} style={styles.hero}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => { hapticSelection(); navigation.goBack(); }}
+                    >
+                        <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+                    </TouchableOpacity>
+                    <View style={styles.headerContent}>
+                        <Text style={styles.title}>Sign Mode</Text>
+                    </View>
+                </LinearGradient>
+                <View style={styles.downloadScreen}>
+                    <Ionicons name="cloud-offline-outline" size={48} color="#f87171" />
+                    <Text style={[styles.downloadTitle, { color: '#f87171' }]}>Download Failed</Text>
+                    <Text style={styles.downloadSubtitle}>{assets.error}</Text>
+                    <Text style={[styles.downloadFile, { marginTop: 12 }]}>
+                        Check your internet connection and reopen Sign Mode.
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -158,9 +259,19 @@ export const SignModeScreen: React.FC = () => {
                     <Text style={styles.subtitle}>Indian Sign Language (ISL) Detection</Text>
                 </View>
 
-                {/* ISL badge top-right */}
-                <View style={styles.islBadge}>
-                    <Text style={styles.islBadgeText}>🤟 ISL</Text>
+                {/* Status badge — shows ⚡ On-device or ⏳ Loading */}
+                <View style={[
+                    styles.islBadge,
+                    !mp.isReady && !mp.initError && styles.islBadgeLoading,
+                    !!mp.initError && styles.islBadgeError,
+                ]}>
+                    <Text style={[
+                        styles.islBadgeText,
+                        !mp.isReady && !mp.initError && styles.islBadgeTextLoading,
+                        !!mp.initError && styles.islBadgeTextError,
+                    ]}>
+                        {mp.initError ? '⚠ Init Failed' : mp.isReady ? '🤟 ISL' : '⏳ Loading…'}
+                    </Text>
                 </View>
             </LinearGradient>
 
@@ -181,18 +292,35 @@ export const SignModeScreen: React.FC = () => {
                     <View style={styles.scanChip}>
                         <View style={[styles.scanDot, { backgroundColor: isScanning ? '#3DEFF5' : '#4ade80' }]} />
                         <Text style={styles.scanChipText}>
-                            {isScanning ? 'Analyzing…' : `Scanned ${scanCount}`}
+                            {isScanning
+                                ? 'Analyzing…'
+                                : mp.isReady
+                                    ? `⚡ On-device · ${scanCount}`
+                                    : mp.initError
+                                        ? '⚠ MediaPipe error'
+                                        : '⏳ Initializing…'}
                         </Text>
                     </View>
                 </View>
 
+                {/* ── RC-3/4 FIX: Init error banner ── */}
+                {mp.initError && (
+                    <View style={styles.initErrorCard}>
+                        <Ionicons name="cloud-offline-outline" size={20} color="#f87171" />
+                        <View style={styles.initErrorTextCol}>
+                            <Text style={styles.initErrorTitle}>MediaPipe Failed to Load</Text>
+                            <Text style={styles.initErrorBody}>{mp.initError}</Text>
+                        </View>
+                    </View>
+                )}
+
                 {/* ── Result Card ── */}
-                {errorMsg ? (
+                {displayError && !mp.initError ? (
                     <View style={styles.errorCard}>
                         <Ionicons name="alert-circle" size={18} color="#f87171" />
-                        <Text style={styles.errorText}>{errorMsg}</Text>
+                        <Text style={styles.errorText}>{displayError}</Text>
                     </View>
-                ) : (
+                ) : !mp.initError ? (
                     <View style={styles.resultCard}>
                         {/* Type badge */}
                         <View style={styles.typeBadgeRow}>
@@ -243,16 +371,29 @@ export const SignModeScreen: React.FC = () => {
                             </View>
                         )}
                     </View>
-                )}
+                ) : null}
 
                 {/* ── Tip ── */}
                 <View style={styles.tipCard}>
                     <MaterialCommunityIcons name="hand-wave" size={14} color={theme.colors.primary} />
                     <Text style={styles.tipText}>
-                        Hold your ISL sign steady in front of the camera. Detection runs every 2.5 seconds.
+                        {/* RC-6 FIX: tip text now matches the actual 1.5 s interval */}
+                        Hold your ISL sign steady in front of the camera. Detection runs every 1.5 seconds.
                     </Text>
                 </View>
             </View>
+
+            {/* ── Hidden MediaPipe WebView — loads from local file:// URIs (RC-3 fix) ── */}
+            <MediaPipeGestureWebView
+                ref={mp.webViewRef}
+                onReady={mp.onReady}
+                onResult={mp.onResult}
+                onError={mp.onError}
+                localAssets={assets.status === 'ready' && assets.htmlUri ? {
+                    htmlUri: assets.htmlUri,
+                } : undefined}
+            />
+
         </SafeAreaView>
     );
 };
@@ -261,6 +402,50 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background,
+    },
+
+    // ── Download progress screen ──
+    downloadScreen: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: theme.spacing.xl,
+        gap: theme.spacing.md,
+    },
+    downloadTitle: {
+        ...theme.typography.h2,
+        color: theme.colors.text,
+        textAlign: 'center',
+        marginTop: theme.spacing.md,
+    },
+    downloadSubtitle: {
+        ...theme.typography.body,
+        color: theme.colors.textMuted,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    progressBarBg: {
+        width: '100%',
+        height: 6,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginTop: theme.spacing.sm,
+    },
+    progressBarFill: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: theme.colors.primary,
+    },
+    downloadPct: {
+        ...theme.typography.bodyStrong,
+        color: theme.colors.primary,
+        fontSize: 18,
+    },
+    downloadFile: {
+        ...theme.typography.small,
+        color: theme.colors.textMuted,
+        fontFamily: 'monospace',
     },
 
     // ── Header ──
@@ -299,10 +484,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 4,
     },
+    islBadgeLoading: {
+        backgroundColor: 'rgba(251,191,36,0.12)',
+        borderColor: 'rgba(251,191,36,0.35)',
+    },
+    islBadgeError: {
+        backgroundColor: 'rgba(248,113,113,0.12)',
+        borderColor: 'rgba(248,113,113,0.35)',
+    },
     islBadgeText: {
         color: theme.colors.primary,
         fontSize: 12,
         fontWeight: '700',
+    },
+    islBadgeTextLoading: {
+        color: '#fbbf24',
+    },
+    islBadgeTextError: {
+        color: '#f87171',
     },
 
     // ── Content ──
@@ -350,6 +549,32 @@ const styles = StyleSheet.create({
         color: '#e2e8f0',
         fontSize: 11,
         fontWeight: '600',
+    },
+
+    // ── Init Error Banner (RC-3/4) ──
+    initErrorCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        backgroundColor: 'rgba(248,113,113,0.1)',
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: 'rgba(248,113,113,0.35)',
+        padding: theme.spacing.md,
+    },
+    initErrorTextCol: {
+        flex: 1,
+        gap: 4,
+    },
+    initErrorTitle: {
+        color: '#f87171',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    initErrorBody: {
+        color: '#fca5a5',
+        fontSize: 12,
+        lineHeight: 17,
     },
 
     // ── Result Card ──

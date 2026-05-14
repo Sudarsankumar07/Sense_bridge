@@ -35,14 +35,13 @@ export const BlindModeScreen: React.FC = () => {
     // Provider toggle state — starts from whatever getDetectionProvider() returns (from .env)
     const [activeProvider, setActiveProvider] = useState<DetectionProvider>(getDetectionProvider());
 
-    const PROVIDER_CYCLE: DetectionProvider[] = ['gemini', 'google', 'roboflow'];
-    const PROVIDER_LABELS: Record<DetectionProvider, string> = {
-        gemini: '✦ Gemini',
+    // Only Google Cloud Vision and Roboflow for object/currency. Gemini excluded.
+    const PROVIDER_CYCLE: DetectionProvider[] = ['google', 'roboflow'];
+    const PROVIDER_LABELS: Record<string, string> = {
         google: '☁ Cloud Vision',
         roboflow: '⚡ Roboflow',
     };
-    const PROVIDER_COLORS: Record<DetectionProvider, string> = {
-        gemini: '#3DEFF5',
+    const PROVIDER_COLORS: Record<string, string> = {
         google: '#7C9BF7',
         roboflow: '#7CFF9A',
     };
@@ -53,7 +52,7 @@ export const BlindModeScreen: React.FC = () => {
             const idx = PROVIDER_CYCLE.indexOf(prev);
             const next = PROVIDER_CYCLE[(idx + 1) % PROVIDER_CYCLE.length];
             setDetectionProvider(next);
-            speak(`Switched to ${next === 'gemini' ? 'Gemini Vision' : next === 'google' ? 'Cloud Vision' : 'Roboflow'}`);
+            speak(`Switched to ${next === 'google' ? 'Cloud Vision' : 'Roboflow'}`);
             return next;
         });
     }, []);
@@ -170,14 +169,9 @@ export const BlindModeScreen: React.FC = () => {
                     }
                 }
 
-                // If Gemini is active, use a longer delay to respect the 15 RPM free tier limit (429 Error).
-                // If both obstacle and currency are active, we make 2 requests per loop.
-                const isGemini = activeProvider === 'gemini';
-                const baseWait = isGemini ? 4000 : 2000;
-                // Add extra wait if we did two requests
-                const extraWait = (isGemini && obstacleActive && currencyActive) ? 2000 : 0;
-                
-                await new Promise(resolve => setTimeout(resolve, baseWait + extraWait));
+                // Google Cloud Vision and Roboflow respond quickly; 2 second polling interval.
+                const baseWait = 2000;
+                await new Promise(resolve => setTimeout(resolve, baseWait));
             }
         };
 

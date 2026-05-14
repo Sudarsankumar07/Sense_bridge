@@ -1,17 +1,37 @@
-import { SignDetection } from '../../types';
-import { recognizeISLSign, ISLDetection } from './signLanguage.gemini';
+import { mapGestureToISL, ISLMappedGesture } from '../mediapipe/gestureToISL';
 
 /**
  * ISL Sign Language Recognition Service
  *
- * Replaced the random mock with real Gemini Vision ISL detection.
- * Accepts a base64 camera frame and returns the recognized ISL sign.
+ * Uses MediaPipe GestureRecognizer (on-device, zero cloud cost) exclusively.
+ * Gemini is NOT used for sign language translation.
  *
- * The SignModeScreen calls this every ~2.5 seconds with a captured frame.
+ * The SignModeScreen calls mp.sendFrame() / mp.lastResult directly for the
+ * MediaPipe fast path. This module provides a thin wrapper that keeps the
+ * ISLDetection shape compatible with the rest of the UI.
  */
 
-export type { ISLDetection };
+export interface ISLDetection {
+    sign: string;
+    text: string;
+    confidence: number;
+    type: 'word' | 'letter';
+    /** Always true — results come from on-device MediaPipe, never cloud */
+    onDevice: true;
+}
 
-export const recognizeSign = async (imageBase64: string): Promise<ISLDetection> => {
-    return recognizeISLSign(imageBase64);
+/**
+ * Convert a raw MediaPipe gesture result into an ISLDetection.
+ * Returns null when the gesture is "None" or below the confidence threshold.
+ */
+export const recognizeSign = (gesture: string, score: number): ISLDetection | null => {
+    const mapped: ISLMappedGesture | null = mapGestureToISL(gesture, score);
+    if (!mapped) return null;
+    return {
+        sign: mapped.sign,
+        text: mapped.text,
+        confidence: mapped.confidence,
+        type: mapped.type,
+        onDevice: true,
+    };
 };

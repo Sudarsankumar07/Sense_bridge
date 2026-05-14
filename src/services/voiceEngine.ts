@@ -3,7 +3,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import config from '../constants/config';
-import { GEMINI_API_KEY } from '@env';
+import { GOOGLE_SPEECH_API_KEY } from '@env';
 
 export type VoiceCommandResult = {
     text: string | null;
@@ -159,12 +159,20 @@ const listenForCommandWeb = (timeoutMs = 4000): Promise<VoiceCommandResult> => {
 };
 
 /**
- * Native: record via expo-av, send to Google Cloud STT.
+ * Native: record via expo-av, send to Google Cloud Speech-to-Text REST API.
+ * Uses GOOGLE_CLOUD_VISION_API_KEY (same GCP project / billing account).
  */
 const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandResult> => {
     let recording: Audio.Recording | null = null;
 
     try {
+        // Validate API key
+        const apiKey = GOOGLE_SPEECH_API_KEY;
+        if (!apiKey) {
+            console.warn('[VoiceEngine] GOOGLE_SPEECH_API_KEY not configured — cannot transcribe speech');
+            return { text: null, confidence: 0, isFinal: true };
+        }
+
         // Configure audio session for recording
         await Audio.setAudioModeAsync({
             allowsRecordingIOS: true,
@@ -207,7 +215,7 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
         // Stop recording
         await recording.stopAndUnloadAsync();
 
-        // Reset audio mode so audio playback (TTS) works again
+        // Reset audio mode so TTS works again
         await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
             playsInSilentModeIOS: true,
@@ -220,43 +228,31 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
         }
 
         // Read audio file as base64
-        // Use literal 'base64' string — avoids FileSystem.EncodingType enum issues
-        // across expo-file-system version upgrades.
         const base64Audio = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType?.Base64 ?? 'base64' as any,
         });
 
-        // Send to Gemini 1.5 Flash for transcription
-        const apiKey = GEMINI_API_KEY;
-        if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-            console.warn('[VoiceEngine] Gemini API key not configured');
-            return { text: null, confidence: 0, isFinal: true };
-        }
-
-        const mimeType = Platform.OS === 'android' ? 'audio/mp4' : 'audio/wav';
+        // ── Google Cloud Speech-to-Text v1 REST API ──────────────────────────
+        // Encoding: Android records M4A (AAC), iOS records LINEAR16 WAV.
+        const encoding = Platform.OS === 'android' ? 'MP3' : 'LINEAR16';
+        const sampleRate = 16000;
 
         const requestBody = {
-            contents: [
-                {
-                    parts: [
-                        { text: "Transcribe this short voice command. Reply with ONLY the exact words spoken, no quotes, no punctuation. If there is no clear speech or it is just background noise, reply with exactly: null" },
-                        {
-                            inline_data: {
-                                mime_type: mimeType,
-                                data: base64Audio,
-                            },
-                        },
-                    ],
-                },
-            ],
-            generationConfig: {
-                temperature: 0.1,
-                maxOutputTokens: 64,
+            config: {
+                encoding,
+                sampleRateHertz: sampleRate,
+                languageCode: config.VOICE.LANGUAGE, // default 'en-US'
+                model: 'command_and_search',          // best for short voice commands
+                enableAutomaticPunctuation: false,
+                maxAlternatives: 1,
+            },
+            audio: {
+                content: base64Audio,
             },
         };
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+            `https://speech.googleapis.com/v1/speech:recognize?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -267,24 +263,37 @@ const listenForCommandNative = async (timeoutMs = 4000): Promise<VoiceCommandRes
         const data = await response.json();
 
         if (!response.ok || data.error) {
-            console.error(`[VoiceEngine] API error: ${data.error?.message || response.statusText}`);
+            console.error(`[VoiceEngine] Google STT error: ${data.error?.message || response.statusText}`);
             return { text: null, confidence: 0, isFinal: true };
         }
 
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        const transcript = rawText.replace(/^["']|["']$/g, '');
-
-        if (transcript && transcript.toLowerCase() !== 'null') {
-            console.log(`[VoiceEngine] Recognized: "${transcript}"`);
-            return {
-                text: transcript,
-                confidence: 0.9, // Gemini doesn't provide confidence, assume high if text is returned
-                isFinal: true,
-            };
+        // Parse result
+        const results = data?.results;
+        if (!results || results.length === 0) {
+            console.log('[VoiceEngine] No speech detected');
+            return { text: null, confidence: 0, isFinal: true };
         }
 
-        console.log('[VoiceEngine] No speech detected');
-        return { text: null, confidence: 0, isFinal: true };
+        const alternative = results[0]?.alternatives?.[0];
+        const transcript: string = (alternative?.transcript ?? '').trim();
+        const confidence: number = alternative?.confidence ?? 0.8;
+
+        if (!transcript) {
+            return { text: null, confidence: 0, isFinal: true };
+        }
+
+        if (confidence < MIN_CONFIDENCE) {
+            console.log(`[VoiceEngine] Rejected — below confidence threshold (${confidence})`);
+            return { text: null, confidence: 0, isFinal: true };
+        }
+
+        console.log(`[VoiceEngine] Google STT recognized: "${transcript}" (confidence: ${confidence})`);
+        return {
+            text: transcript,
+            confidence,
+            isFinal: true,
+        };
+
     } catch (error) {
         console.error('[VoiceEngine] Speech recognition error:', error);
 

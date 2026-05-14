@@ -7,9 +7,11 @@ import { theme } from '../theme';
 type CameraViewProps = {
     cameraRef: React.RefObject<CameraView | null>;
     label?: string;
+    /** 'front' for Sign Mode, 'back' for Blind Mode (default: 'back') */
+    facing?: 'front' | 'back';
 };
 
-export const CameraViewComponent: React.FC<CameraViewProps> = ({ cameraRef, label }) => {
+export const CameraViewComponent: React.FC<CameraViewProps> = ({ cameraRef, label, facing = 'back' }) => {
     // Camera doesn't work on web, show placeholder
     if (Platform.OS === 'web') {
         return (
@@ -30,7 +32,7 @@ export const CameraViewComponent: React.FC<CameraViewProps> = ({ cameraRef, labe
 
     return (
         <View style={styles.wrapper}>
-            <CameraView ref={cameraRef} style={styles.camera} facing="back" ratio="16:9" />
+            <CameraView ref={cameraRef} style={styles.camera} facing={facing} ratio="16:9" />
             <View style={styles.overlay}>
                 <Text style={styles.label}>{label ?? 'Live Camera'}</Text>
             </View>
