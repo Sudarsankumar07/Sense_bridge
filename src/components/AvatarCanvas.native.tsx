@@ -324,6 +324,23 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             // rest position — this persists between sign animations.
             const mixer = new THREE.AnimationMixer(gltf.scene);
 
+            // Dynamically resolve bone names from the loaded model
+            const findActualBoneName = (semanticName: string) => {
+                const cleanKey = semanticName.toLowerCase();
+                const cleanKeyAlt = cleanKey.replace('hand', '');
+                const matched = uniqueBones.find((b) => {
+                    const cb = b.toLowerCase();
+                    return cb === cleanKey || 
+                           cb.endsWith('_' + cleanKey) || 
+                           cb.endsWith('_' + cleanKeyAlt) || 
+                           cb.endsWith(':' + cleanKey) || 
+                           cb.endsWith(':' + cleanKeyAlt) ||
+                           cb.endsWith(cleanKey) ||
+                           cb.endsWith(cleanKeyAlt);
+                });
+                return matched || semanticName;
+            };
+
             // ✅ IDLE POSE: Arms relaxed at sides (recalibrated for ZYX rotation order)
             // These Euler angles position arms naturally for sign language on top
             // ── IDLE POSE ─────────────────────────────────────────────────────────
@@ -334,27 +351,27 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             //   Y  = inward/outward twist
             // For idle:  arms hang at sides = z: -0.3 (slightly down from T-pose)
             //            small forward lean = x: 0.3 (arms slightly in front of body)
-            const idleBones: Record<string, { x: number; y: number; z: number }> = {
+            const idleBonesSemantic: Record<string, { x: number; y: number; z: number }> = {
                 // Right arm — hangs naturally at side, slightly in front
-                mixamorig_RightShoulder: { x: 0.0,  y: 0.0, z: 0.0  },
-                mixamorig_RightArm:      { x: 0.3,  y: 0.0, z: -0.3 }, // arm down, leaning forward
-                mixamorig_RightForeArm:  { x: 0.0,  y: 0.0, z: 0.0  },
-                mixamorig_RightHand:     { x: 0.0,  y: 0.0, z: 0.0  },
+                RightShoulder: { x: 0.0,  y: 0.0, z: 0.0  },
+                RightArm:      { x: 0.3,  y: 0.0, z: -0.3 }, // arm down, leaning forward
+                RightForeArm:  { x: 0.0,  y: 0.0, z: 0.0  },
+                RightHand:     { x: 0.0,  y: 0.0, z: 0.0  },
                 // Left arm — mirror
-                mixamorig_LeftShoulder:  { x: 0.0,  y: 0.0, z: 0.0  },
-                mixamorig_LeftArm:       { x: 0.3,  y: 0.0, z: 0.3  }, // arm down, leaning forward
-                mixamorig_LeftForeArm:   { x: 0.0,  y: 0.0, z: 0.0  },
-                mixamorig_LeftHand:      { x: 0.0,  y: 0.0, z: 0.0  },
+                LeftShoulder:  { x: 0.0,  y: 0.0, z: 0.0  },
+                LeftArm:       { x: 0.3,  y: 0.0, z: 0.3  }, // arm down, leaning forward
+                LeftForeArm:   { x: 0.0,  y: 0.0, z: 0.0  },
+                LeftHand:      { x: 0.0,  y: 0.0, z: 0.0  },
                 // Spine
-                mixamorig_Spine:         { x: 0.0,  y: 0.0, z: 0.0  },
-                mixamorig_Spine1:        { x: 0.0,  y: 0.0, z: 0.0  },
+                Spine:         { x: 0.0,  y: 0.0, z: 0.0  },
+                Spine1:        { x: 0.0,  y: 0.0, z: 0.0  },
             };
 
             const idleTracks: THREE.KeyframeTrack[] = [];
-            gltf.scene.traverse((obj: THREE.Object3D) => {
-                if (!(obj instanceof THREE.Bone)) return;
-                const pose = idleBones[obj.name];
-                if (!pose) return;
+            Object.entries(idleBonesSemantic).forEach(([semanticName, pose]) => {
+                const actualName = findActualBoneName(semanticName);
+                if (!uniqueBones.includes(actualName)) return;
+
                 // ✅ FIX: Use ZYX rotation order (matches sign JSON data)
                 // Same order as animation tracks - ensures consistent bone positioning
                 const ROTATION_ORDER: THREE.EulerOrder = 'ZYX';
@@ -362,7 +379,7 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
                 const q = new THREE.Quaternion().setFromEuler(euler);
                 idleTracks.push(
                     new THREE.QuaternionKeyframeTrack(
-                        `${obj.name}.quaternion`,
+                        `${actualName}.quaternion`,
                         [0, 9999],                    // hold forever
                         [q.x, q.y, q.z, q.w, q.x, q.y, q.z, q.w]
                     )

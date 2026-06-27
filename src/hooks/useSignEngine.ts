@@ -113,7 +113,7 @@ const BONE_ALIASES: Record<string, string[]> = {
 const CLIP_GAP_MS = 160;
 const CROSS_FADE_SEC = 0.15;
 
-const toClip = (name: string, signData: SignClipData): THREE.AnimationClip | null => {
+const toClip = (name: string, signData: SignClipData, boneMap?: Map<string, string>): THREE.AnimationClip | null => {
     const tracks: THREE.KeyframeTrack[] = [];
     const boneNames = new Set<string>();
 
@@ -142,16 +142,27 @@ const toClip = (name: string, signData: SignClipData): THREE.AnimationClip | nul
         });
 
         if (times.length > 0) {
-            const aliases = BONE_ALIASES[boneName] ?? [boneName];
-            aliases.forEach((alias) => {
+            const actualName = boneMap?.get(boneName);
+            if (actualName) {
                 tracks.push(
                     new THREE.QuaternionKeyframeTrack(
-                        `${alias}.quaternion`,
+                        `${actualName}.quaternion`,
                         times,
                         values
                     )
                 );
-            });
+            } else {
+                const aliases = BONE_ALIASES[boneName] ?? [boneName];
+                aliases.forEach((alias) => {
+                    tracks.push(
+                        new THREE.QuaternionKeyframeTrack(
+                            `${alias}.quaternion`,
+                            times,
+                            values
+                        )
+                    );
+                });
+            }
         }
     });
 
@@ -206,6 +217,40 @@ export const createSignEngine = (mixer: THREE.AnimationMixer) => {
     let activeTimers: ReturnType<typeof setTimeout>[] = [];
     let currentActions: THREE.AnimationAction[] = [];
 
+    // Traverse and build a dynamic bone map for the loaded model
+    const root = mixer.getRoot();
+    const detectedBones: string[] = [];
+    if (root instanceof THREE.Object3D) {
+        root.traverse((obj: THREE.Object3D) => {
+            if (obj instanceof THREE.Bone) {
+                detectedBones.push(obj.name);
+            }
+        });
+    }
+
+    const boneMap = new Map<string, string>();
+    const standardKeys = Object.keys(BONE_ALIASES);
+
+    standardKeys.forEach((key) => {
+        const cleanKey = key.toLowerCase();
+        const cleanKeyAlt = cleanKey.replace('hand', '');
+        const matched = detectedBones.find((b) => {
+            const cb = b.toLowerCase();
+            return cb === cleanKey || 
+                   cb.endsWith('_' + cleanKey) || 
+                   cb.endsWith('_' + cleanKeyAlt) || 
+                   cb.endsWith(':' + cleanKey) || 
+                   cb.endsWith(':' + cleanKeyAlt) ||
+                   cb.endsWith(cleanKey) ||
+                   cb.endsWith(cleanKeyAlt);
+        });
+        if (matched) {
+            boneMap.set(key, matched);
+        }
+    });
+
+    console.log('[SignEngine] Dynamic bone mapping complete. Mapped keys:', boneMap.size, 'out of', standardKeys.length);
+
     // Run diagnostic on engine creation
     diagnosticReport();
 
@@ -234,7 +279,7 @@ export const createSignEngine = (mixer: THREE.AnimationMixer) => {
             return null;
         }
 
-        return toClip(signName, data);
+        return toClip(signName, data, boneMap);
     };
 
     const buildFingerspellClips = (word: string): THREE.AnimationClip[] => {
@@ -246,7 +291,7 @@ export const createSignEngine = (mixer: THREE.AnimationMixer) => {
                 return;
             }
 
-            const clip = toClip(`alphabet_${letter}`, letterData);
+            const clip = toClip(`alphabet_${letter}`, letterData, boneMap);
             if (clip) {
                 clips.push(clip);
             }
