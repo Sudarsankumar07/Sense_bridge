@@ -34,7 +34,8 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "package": "com.susan07.sensebridgesusan07"
+      "package": "com.susan07.sensebridgesusan07",
+      "largeHeap": true
     },
     "androidStatusBar": {
       "hidden": true
