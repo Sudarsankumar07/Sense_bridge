@@ -1,11 +1,29 @@
 import React, { useRef, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, PanResponder, LogBox } from 'react-native';
 import { GLView } from 'expo-gl';
-import { Renderer } from 'expo-three';
+import { Renderer, TextureLoader as ExpoTextureLoader } from 'expo-three';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
+
+// ── Permanently suppress noisy EXGL pixelStorei warnings ──────────────────────
+// expo-gl does not support all WebGL pixelStorei parameters. Three.js calls
+// these during texture uploads every render frame, flooding the log.
+// We suppress at module level so the filter is active for the entire lifetime
+// of the component (including the animation loop), not just during model load.
+const _origConsoleLog = console.log;
+console.log = (...args: any[]) => {
+    const msg = typeof args[0] === 'string' ? args[0] : '';
+    if (msg.includes('EXGL:') || msg.includes('pixelStorei')) return;
+    _origConsoleLog(...args);
+};
+
+// Suppress the same message from the in-app LogBox overlay
+LogBox.ignoreLogs([
+    'EXGL: gl.pixelStorei',
+    'pixelStorei',
+]);
 
 interface AvatarCanvasProps {
     onReady: (mixer: THREE.AnimationMixer) => void;
@@ -97,14 +115,6 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
     }), []);
 
     const onContextCreate = async (gl: any) => {
-        // ── Suppress noisy EXGL warnings about unsupported pixelStorei params ──
-        const _origLog = console.log;
-        console.log = (...args: any[]) => {
-            const msg = typeof args[0] === 'string' ? args[0] : '';
-            if (msg.includes('EXGL:') || msg.includes('pixelStorei')) return;
-            _origLog(...args);
-        };
-
         // ── WORKAROUND: expo-gl + three.js trim() crash ──
         // three.js calls .trim() on gl.getShaderInfoLog() and gl.getProgramInfoLog().
         // On some devices, expo-gl returns null/undefined instead of an empty string,
@@ -216,10 +226,6 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             const asset = Asset.fromModule(require('../../assets/models/avatar.glb'));
 
             // ── Resilient asset URI resolution ────────────────────────────────
-            // downloadAsync() can fail on dev-client builds when expo-asset and
-            // expo-modules-core versions are mismatched (NoSuchMethodError on
-            // getFilePermission). We therefore try it first, and if it throws,
-            // fall back to asset.uri which Metro/EAS already serves over HTTP.
             let assetUri: string | null | undefined = null;
             try {
                 await asset.downloadAsync();
@@ -235,11 +241,6 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             }
             console.log('[AvatarCanvas] Fetching GLB from:', assetUri.substring(0, 80));
 
-            // ─────────────────────────────────────────────────────────────────
-            // Use fetch() + arrayBuffer() — works on all platforms.
-            // Metro dev server and EAS both serve the GLB over HTTP, so
-            // no FileSystem permission is needed.
-            // ─────────────────────────────────────────────────────────────────
             const response = await fetch(assetUri);
             if (!response.ok) {
                 throw new Error(`Failed to fetch GLB: HTTP ${response.status}`);
@@ -247,12 +248,221 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             const arrayBuffer = await response.arrayBuffer();
             console.log('[AvatarCanvas] GLB fetched, size:', arrayBuffer.byteLength);
 
+            // ── GLB Parser & Image Extractor ───────────────────────────────
+            // React Native's Blob constructor does NOT support ArrayBuffer/ArrayBufferView input.
+            // GLTFLoader.parse() internally tries to create Blobs for embedded images, which crashes.
+            // Fix: Parse the GLB binary structure, extract all images, save them as local files using
+            // expo-file-system, modify the GLTF JSON to reference the local file URIs directly (deleting
+            // bufferView references to bypass Blob loading), rebuild a valid GLB ArrayBuffer, and parse it.
+
+            // Pure-JS helpers to ensure platform compatibility without relying on missing globals
+            const localDecodeText = (arr: Uint8Array): string => {
+                let out = "";
+                let i = 0;
+                const len = arr.length;
+                while (i < len) {
+                    const c = arr[i++];
+                    if (c < 128) {
+                        out += String.fromCharCode(c);
+                    } else if (c > 191 && c < 224) {
+                        out += String.fromCharCode(((c & 31) << 6) | (arr[i++] & 63));
+                    } else {
+                        out += String.fromCharCode(((c & 15) << 12) | ((arr[i++] & 63) << 6) | (arr[i++] & 63));
+                    }
+                }
+                return out;
+            };
+
+            const localEncodeText = (str: string): Uint8Array => {
+                const bytes: number[] = [];
+                for (let i = 0; i < str.length; i++) {
+                    const code = str.charCodeAt(i);
+                    if (code < 0x80) {
+                        bytes.push(code);
+                    } else if (code < 0x800) {
+                        bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+                    } else if (code < 0xd800 || code >= 0xe000) {
+                        bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+                    } else {
+                        i++;
+                        const utf32 = 0x10000 + (((code & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
+                        bytes.push(
+                            0xf0 | (utf32 >> 18),
+                            0x80 | ((utf32 >> 12) & 0x3f),
+                            0x80 | ((utf32 >> 6) & 0x3f),
+                            0x80 | (utf32 & 0x3f)
+                        );
+                    }
+                }
+                return new Uint8Array(bytes);
+            };
+
+            const localUint8ToBase64 = (arr: Uint8Array): string => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+                let base64 = '';
+                const len = arr.length;
+                for (let i = 0; i < len; i += 3) {
+                    const b1 = arr[i];
+                    const b2 = i + 1 < len ? arr[i + 1] : NaN;
+                    const b3 = i + 2 < len ? arr[i + 2] : NaN;
+                    const enc1 = b1 >> 2;
+                    const enc2 = ((b1 & 3) << 4) | (isNaN(b2) ? 0 : b2 >> 4);
+                    const enc3 = isNaN(b2) ? 64 : ((b2 & 15) << 2) | (isNaN(b3) ? 0 : b3 >> 6);
+                    const enc4 = isNaN(b3) ? 64 : b3 & 63;
+                    base64 += chars[enc1] + chars[enc2] +
+                              (enc3 === 64 ? '=' : chars[enc3]) +
+                              (enc4 === 64 ? '=' : chars[enc4]);
+                }
+                return base64;
+            };
+
+            const glbView = new DataView(arrayBuffer);
+            const magic   = glbView.getUint32(0, true);
+            if (magic !== 0x46546C67) {
+                throw new Error('Invalid glTF-Binary file format.');
+            }
+            const glbVersion = glbView.getUint32(4, true);
+            const jsonLen    = glbView.getUint32(12, true);
+
+            // Extract original JSON string
+            const jsonBytes = new Uint8Array(arrayBuffer, 20, jsonLen);
+            const jsonStr   = localDecodeText(jsonBytes);
+            const gltfJson  = JSON.parse(jsonStr);
+
+            // Extract BIN chunk details
+            const binHeaderOffset = 20 + jsonLen;
+            const binChunkLength   = glbView.getUint32(binHeaderOffset, true);
+            const binDataOffset    = binHeaderOffset + 8;
+            const binBytes         = new Uint8Array(arrayBuffer, binDataOffset, binChunkLength);
+
+            const blobUriMap = new Map<string, string>();
+            const tmpDir     = FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? '';
+            const images: any[] = gltfJson.images ?? [];
+
+            // 1. Write each embedded texture to a local cache file as base64
+            await Promise.all(
+                images.map(async (img: any, idx: number) => {
+                    if (img.bufferView === undefined) return;
+                    const bv       = gltfJson.bufferViews[img.bufferView];
+                    const imgBytes = binBytes.slice(bv.byteOffset, bv.byteOffset + bv.byteLength);
+                    const ext      = img.mimeType === 'image/jpeg' || img.mimeType === 'image/jpg' ? 'jpg' : 'png';
+                    const tmpPath  = `${tmpDir}sensebridge_tex_${idx}.${ext}`;
+
+                    const b64 = localUint8ToBase64(imgBytes);
+                    await FileSystem.writeAsStringAsync(tmpPath, b64, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                    blobUriMap.set(`__img_${idx}`, tmpPath);
+                    console.log(`[AvatarCanvas] Extracted texture ${idx} (${img.name ?? ext}) → ${tmpPath.split('/').pop()}`);
+                })
+            );
+            console.log('[AvatarCanvas] Embedded textures pre-extracted:', blobUriMap.size);
+
+            // 2. Modify GLTF JSON to refer to local file:// URIs directly
+            images.forEach((img: any, idx: number) => {
+                if (img.bufferView !== undefined) {
+                    const fileUri = blobUriMap.get(`__img_${idx}`);
+                    if (fileUri) {
+                        img.uri = fileUri;
+                        delete img.bufferView; // deletes reference to bufferView so parser skips Blob creation
+                    }
+                }
+            });
+
+            // 3. Stringify the modified JSON and pad it to 4-byte boundary
+            const newJsonStr   = JSON.stringify(gltfJson);
+            const newJsonBytes = localEncodeText(newJsonStr);
+            const paddedJsonLen = Math.ceil(newJsonBytes.length / 4) * 4;
+            const paddedJson   = new Uint8Array(paddedJsonLen);
+            paddedJson.set(newJsonBytes);
+            for (let i = newJsonBytes.length; i < paddedJsonLen; i++) {
+                paddedJson[i] = 0x20; // Pad with spaces
+            }
+
+            // Pad BIN chunk to 4-byte boundary
+            const paddedBinLen = Math.ceil(binChunkLength / 4) * 4;
+            const paddedBin   = new Uint8Array(paddedBinLen);
+            paddedBin.set(binBytes);
+
+            // 4. Construct the rebuilt GLB ArrayBuffer
+            const newTotalLength = 12 + 8 + paddedJsonLen + 8 + paddedBinLen;
+            const rebuiltBuffer  = new ArrayBuffer(newTotalLength);
+            const rebuiltView    = new DataView(rebuiltBuffer);
+
+            // Write Header
+            rebuiltView.setUint32(0, 0x46546C67, true);   // magic
+            rebuiltView.setUint32(4, glbVersion, true);   // version
+            rebuiltView.setUint32(8, newTotalLength, true); // total length
+
+            // Write JSON Chunk Header
+            rebuiltView.setUint32(12, paddedJsonLen, true);
+            rebuiltView.setUint32(16, 0x4E4F534A, true);  // "JSON"
+
+            // Write JSON Chunk Data
+            const rebuiltJsonBytes = new Uint8Array(rebuiltBuffer, 20, paddedJsonLen);
+            rebuiltJsonBytes.set(paddedJson);
+
+            // Write BIN Chunk Header
+            const binHeaderIndex = 20 + paddedJsonLen;
+            rebuiltView.setUint32(binHeaderIndex, paddedBinLen, true);
+            rebuiltView.setUint32(binHeaderIndex + 4, 0x004E4942, true); // "BIN"
+
+            // Write BIN Chunk Data
+            const rebuiltBinBytes = new Uint8Array(rebuiltBuffer, binHeaderIndex + 8, paddedBinLen);
+            rebuiltBinBytes.set(paddedBin);
+
+            console.log(`[AvatarCanvas] GLB rebuilt with local URIs. New size: ${newTotalLength} bytes.`);
+
             const loader = new GLTFLoader();
             console.log('[AvatarCanvas] Parsing GLB ArrayBuffer...');
-            const gltf = await new Promise<any>((resolve, reject) => {
-                loader.parse(arrayBuffer, '', resolve, reject);
-            });
+
+            // Hook THREE.TextureLoader.prototype.load to bypass expo-three's broken polyfill for file:// URIs
+            const originalTextureLoaderLoad = THREE.TextureLoader.prototype.load;
+            (THREE.TextureLoader.prototype as any).load = function(this: any, url: string, onLoad: any, onProgress: any, onError: any): any {
+                if (url && (url.startsWith('file://') || url.includes('sensebridge_tex'))) {
+                    console.log(`[AvatarCanvas] Custom texture load intercept for local URI: ${url.split('/').pop()}`);
+                    const expoLoader = new ExpoTextureLoader(this.manager);
+                    expoLoader.setCrossOrigin(this.crossOrigin);
+                    expoLoader.setPath(this.path);
+                    return expoLoader.load(url, onLoad, onProgress, onError);
+                }
+                return originalTextureLoaderLoad.call(this, url, onLoad, onProgress, onError);
+            };
+
+            let gltf: any;
+            try {
+                gltf = await new Promise<any>((resolve, reject) => {
+                    loader.parse(rebuiltBuffer, '', resolve, reject);
+                });
+            } finally {
+                // Restore the original loader immediately after parsing finishes (whether it succeeds or fails)
+                THREE.TextureLoader.prototype.load = originalTextureLoaderLoad;
+            }
             console.log('[AvatarCanvas] GLB parsed successfully');
+
+            // ── CRITICAL FIX: Sanitize bone names ────────────────────────────
+            // Three.js treats ':' as a reserved path separator in PropertyBinding
+            // (_RESERVED_CHARS_RE = '\\[\\]\\.:\\/').
+            // Mixamo exports using the "mixamorig2:" prefix (colon variant) cause
+            // PropertyBinding.parseTrackName() to throw, silently aborting scene
+            // setup and preventing onReady() from ever being called.
+            // Fix: replace all ':' with '_' in every Object3D name after parse.
+            gltf.scene.traverse((obj: THREE.Object3D) => {
+                if (obj.name && obj.name.includes(':')) {
+                    obj.name = obj.name.replace(/:/g, '_');
+                }
+            });
+            // Also sanitize any AnimationClips embedded in the GLB
+            if (gltf.animations && gltf.animations.length > 0) {
+                gltf.animations.forEach((clip: THREE.AnimationClip) => {
+                    clip.tracks.forEach((track: THREE.KeyframeTrack) => {
+                        if (track.name && track.name.includes(':')) {
+                            track.name = track.name.replace(/:/g, '_');
+                        }
+                    });
+                });
+            }
+            console.log('[AvatarCanvas] Bone name sanitization complete (colon → underscore).');
 
             gltf.scene.position.set(0, 0, 0);
             scene.add(gltf.scene);
@@ -313,9 +523,6 @@ export const AvatarCanvas: React.FC<AvatarCanvasProps> = ({ onReady, onError, on
             if (uniqueBones.length === 0) {
                 console.warn('[AvatarCanvas] No bones found. Model may be unrigged — animations will not play.');
             }
-
-            // Restore console.log now that textures have loaded
-            console.log = _origLog;
 
             // ── IDLE POSE ─────────────────────────────────────────────────────
             // Mixamo exports in T-pose (both arms straight out). Bring arms

@@ -69,45 +69,65 @@ const ALPHABET_SIGNS: Record<string, SignClipData> = {
     z: require('../../assets/signs/alphabet/z.json'),
 };
 
-// Exact bone names from Mixamo Y-Bot avatar.glb
-// Note: Mixamo GLB exports use underscore separator (mixamorig_RightHand),
-// NOT the colon-prefixed mixamorig:RightHand seen in Blender/FBX files.
+// Exact bone names from Mixamo avatar.glb
+// Two prefix variants are supported:
+//   mixamorig_  → original Y-Bot / older Mixamo exports (underscore)
+//   mixamorig2_ → newer Mixamo characters exported with colon, sanitized to underscore
+//                 e.g. "mixamorig2:RightArm" → "mixamorig2_RightArm" after sanitization
 const BONE_ALIASES: Record<string, string[]> = {
     // Right arm chain
-    RightArm: ['mixamorig_RightArm'],
-    RightForeArm: ['mixamorig_RightForeArm'],
-    RightHand: ['mixamorig_RightHand'],
-    RightShoulder: ['mixamorig_RightShoulder'],
+    RightArm:      ['mixamorig_RightArm',      'mixamorig2_RightArm'],
+    RightForeArm:  ['mixamorig_RightForeArm',  'mixamorig2_RightForeArm'],
+    RightHand:     ['mixamorig_RightHand',      'mixamorig2_RightHand'],
+    RightShoulder: ['mixamorig_RightShoulder',  'mixamorig2_RightShoulder'],
     // Right thumb
-    RightHandThumb1: ['mixamorig_RightHandThumb1'],
-    RightHandThumb2: ['mixamorig_RightHandThumb2'],
-    RightHandThumb3: ['mixamorig_RightHandThumb3'],
+    RightHandThumb1: ['mixamorig_RightHandThumb1', 'mixamorig2_RightHandThumb1'],
+    RightHandThumb2: ['mixamorig_RightHandThumb2', 'mixamorig2_RightHandThumb2'],
+    RightHandThumb3: ['mixamorig_RightHandThumb3', 'mixamorig2_RightHandThumb3'],
     // Right index
-    RightHandIndex1: ['mixamorig_RightHandIndex1'],
-    RightHandIndex2: ['mixamorig_RightHandIndex2'],
-    RightHandIndex3: ['mixamorig_RightHandIndex3'],
+    RightHandIndex1: ['mixamorig_RightHandIndex1', 'mixamorig2_RightHandIndex1'],
+    RightHandIndex2: ['mixamorig_RightHandIndex2', 'mixamorig2_RightHandIndex2'],
+    RightHandIndex3: ['mixamorig_RightHandIndex3', 'mixamorig2_RightHandIndex3'],
     // Right middle
-    RightHandMiddle1: ['mixamorig_RightHandMiddle1'],
-    RightHandMiddle2: ['mixamorig_RightHandMiddle2'],
-    RightHandMiddle3: ['mixamorig_RightHandMiddle3'],
+    RightHandMiddle1: ['mixamorig_RightHandMiddle1', 'mixamorig2_RightHandMiddle1'],
+    RightHandMiddle2: ['mixamorig_RightHandMiddle2', 'mixamorig2_RightHandMiddle2'],
+    RightHandMiddle3: ['mixamorig_RightHandMiddle3', 'mixamorig2_RightHandMiddle3'],
     // Right ring
-    RightHandRing1: ['mixamorig_RightHandRing1'],
-    RightHandRing2: ['mixamorig_RightHandRing2'],
+    RightHandRing1: ['mixamorig_RightHandRing1', 'mixamorig2_RightHandRing1'],
+    RightHandRing2: ['mixamorig_RightHandRing2', 'mixamorig2_RightHandRing2'],
     // Right pinky
-    RightHandPinky1: ['mixamorig_RightHandPinky1'],
-    RightHandPinky2: ['mixamorig_RightHandPinky2'],
+    RightHandPinky1: ['mixamorig_RightHandPinky1', 'mixamorig2_RightHandPinky1'],
+    RightHandPinky2: ['mixamorig_RightHandPinky2', 'mixamorig2_RightHandPinky2'],
     // Left arm chain
-    LeftArm: ['mixamorig_LeftArm'],
-    LeftForeArm: ['mixamorig_LeftForeArm'],
-    LeftHand: ['mixamorig_LeftHand'],
-    LeftShoulder: ['mixamorig_LeftShoulder'],
+    LeftArm:      ['mixamorig_LeftArm',      'mixamorig2_LeftArm'],
+    LeftForeArm:  ['mixamorig_LeftForeArm',  'mixamorig2_LeftForeArm'],
+    LeftHand:     ['mixamorig_LeftHand',      'mixamorig2_LeftHand'],
+    LeftShoulder: ['mixamorig_LeftShoulder',  'mixamorig2_LeftShoulder'],
+    // Left thumb
+    LeftHandThumb1: ['mixamorig_LeftHandThumb1', 'mixamorig2_LeftHandThumb1'],
+    LeftHandThumb2: ['mixamorig_LeftHandThumb2', 'mixamorig2_LeftHandThumb2'],
+    LeftHandThumb3: ['mixamorig_LeftHandThumb3', 'mixamorig2_LeftHandThumb3'],
+    // Left index
+    LeftHandIndex1: ['mixamorig_LeftHandIndex1', 'mixamorig2_LeftHandIndex1'],
+    LeftHandIndex2: ['mixamorig_LeftHandIndex2', 'mixamorig2_LeftHandIndex2'],
+    LeftHandIndex3: ['mixamorig_LeftHandIndex3', 'mixamorig2_LeftHandIndex3'],
+    // Left middle
+    LeftHandMiddle1: ['mixamorig_LeftHandMiddle1', 'mixamorig2_LeftHandMiddle1'],
+    LeftHandMiddle2: ['mixamorig_LeftHandMiddle2', 'mixamorig2_LeftHandMiddle2'],
+    LeftHandMiddle3: ['mixamorig_LeftHandMiddle3', 'mixamorig2_LeftHandMiddle3'],
+    // Left ring
+    LeftHandRing1: ['mixamorig_LeftHandRing1', 'mixamorig2_LeftHandRing1'],
+    LeftHandRing2: ['mixamorig_LeftHandRing2', 'mixamorig2_LeftHandRing2'],
+    // Left pinky
+    LeftHandPinky1: ['mixamorig_LeftHandPinky1', 'mixamorig2_LeftHandPinky1'],
+    LeftHandPinky2: ['mixamorig_LeftHandPinky2', 'mixamorig2_LeftHandPinky2'],
     // Spine / Head
-    Hips: ['mixamorig_Hips'],
-    Spine: ['mixamorig_Spine'],
-    Spine1: ['mixamorig_Spine1'],
-    Spine2: ['mixamorig_Spine2'],
-    Neck: ['mixamorig_Neck'],
-    Head: ['mixamorig_Head'],
+    Hips:   ['mixamorig_Hips',   'mixamorig2_Hips'],
+    Spine:  ['mixamorig_Spine',  'mixamorig2_Spine'],
+    Spine1: ['mixamorig_Spine1', 'mixamorig2_Spine1'],
+    Spine2: ['mixamorig_Spine2', 'mixamorig2_Spine2'],
+    Neck:   ['mixamorig_Neck',   'mixamorig2_Neck'],
+    Head:   ['mixamorig_Head',   'mixamorig2_Head'],
 };
 
 const CLIP_GAP_MS = 160;
